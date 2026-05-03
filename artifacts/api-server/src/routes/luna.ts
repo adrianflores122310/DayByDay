@@ -10,7 +10,10 @@ const client = new Anthropic({
 type Difficulty = "simple" | "normal" | "challenge";
 type Mode = "chat" | "voice";
 
-function buildChatSystemPrompt(language: string, difficulty: Difficulty): string {
+function buildChatSystemPrompt(
+  language: string,
+  difficulty: Difficulty,
+): string {
   const difficultyGuide: Record<Difficulty, string> = {
     simple: `- Use only simple, everyday vocabulary. Keep sentences short and clear (5–10 words).
 - Speak slowly in terms of information density — one idea per sentence.
@@ -46,7 +49,10 @@ Difficulty-specific guidance:
 ${difficultyGuide[difficulty]}`;
 }
 
-function buildVoiceSystemPrompt(language: string, difficulty: Difficulty): string {
+function buildVoiceSystemPrompt(
+  language: string,
+  difficulty: Difficulty,
+): string {
   const difficultyGuide: Record<Difficulty, string> = {
     simple: `- Use very simple, everyday words.
 - Keep pauses natural and sentences short.
@@ -170,8 +176,15 @@ router.post("/clear", (_req, res) => {
 });
 
 router.post("/translate", async (req, res) => {
-  const { text, from, to } = req.body as { text?: string; from?: string; to?: string };
-  if (!text || !from || !to) { res.status(400).json({ error: "Missing fields" }); return; }
+  const { text, from, to } = req.body as {
+    text?: string;
+    from?: string;
+    to?: string;
+  };
+  if (!text || !from || !to) {
+    res.status(400).json({ error: "Missing fields" });
+    return;
+  }
   try {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
@@ -179,7 +192,9 @@ router.post("/translate", async (req, res) => {
       system: `Translate the following text from ${from} to ${to}. Return ONLY the translation — no quotes, no labels, no explanations.`,
       messages: [{ role: "user", content: text }],
     });
-    res.json({ translation: (response.content[0] as { text: string }).text.trim() });
+    res.json({
+      translation: (response.content[0] as { text: string }).text.trim(),
+    });
   } catch (err) {
     req.log.error({ err }, "Translation error");
     res.status(500).json({ error: "Translation failed" });
