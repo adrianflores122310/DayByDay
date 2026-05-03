@@ -979,21 +979,21 @@ router.get("/", (_req, res) => {
 
   // Strip everything that sounds unnatural when spoken aloud
   function cleanForTTS(text) {
-    return text
-      // Remove emoji (broad Unicode ranges)
-      .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
-      .replace(/[\u{2600}-\u{27BF}]/gu, "")
-      .replace(/[\u{FE00}-\u{FEFF}]/gu, "")
-      .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")
-      .replace(/[\u{1FA00}-\u{1FA9F}]/gu, "")
-      // Remove markdown symbols
+    // Remove emoji via surrogate pair detection (avoids unicode escape issues in template literals)
+    let noEmoji = "";
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      if (c >= 0xD800 && c <= 0xDFFF) { i++; continue; } // surrogate pair → skip both halves
+      if (c >= 0x2600 && c <= 0x27FF) continue;          // misc symbols & arrows
+      if (c >= 0xFE00 && c <= 0xFEFF) continue;          // variation selectors / BOM
+      noEmoji += text[i];
+    }
+    return noEmoji
       .replace(/[*_#~>]/g, "")
       .replace(/\u0060/g, "")
-      // Remove bracket corrections like [word] or (note: ...)
-      .replace(/\[.*?\]/g, "")
-      // Collapse multiple spaces / newlines into natural pauses
-      .replace(/\n+/g, ". ")
-      .replace(/\s{2,}/g, " ")
+      .replace(/\\[.*?\\]/g, "")
+      .replace(/\\n+/g, ". ")
+      .replace(/\\s{2,}/g, " ")
       .trim();
   }
 
