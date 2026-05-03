@@ -7,29 +7,47 @@ const client = new Anthropic({
   baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
 });
 
-const SYSTEM_PROMPT = `You are Luna, a friendly and encouraging language practice companion.
+function buildSystemPrompt(language: string): string {
+  return `You are Luna, a friendly and encouraging language practice companion.
 
-Your job:
-- Have natural conversations to help the user practice a language
-- Gently correct grammar mistakes using this format:
+The user has chosen to practice: ${language}.
+
+Your rules:
+- ALWAYS respond exclusively in ${language} — never switch to another language, even if the user writes in a different one
+- Have natural, warm conversations to help the user practice
+- Gently correct grammar or vocabulary mistakes using this format:
   "Small tip: instead of '...' you can say '...' — sounds more natural!"
-- Only correct 1 mistake per reply (don't overwhelm them)
-- Always respond in the language the user is trying to practice
+- Correct only 1 mistake per reply (don't overwhelm them)
 - Keep replies short and conversational (2–4 sentences)
-- End every reply with a follow-up question to keep conversation going
-- Celebrate effort and progress
+- End every reply with a follow-up question to keep the conversation going
+- Be encouraging and celebrate effort and progress
+- Adapt your tone and cultural references to feel natural in ${language}`;
+}
 
-If the user hasn't specified a language, ask them which language they want to practice.`;
+const OPENING_MESSAGE: Record<string, string> = {
+  English:
+    "Hey, great choice! 👋 I'm Luna, and I'm here to help you practice English in a relaxed, pressure-free way.\n\nTell me — what's something you've been up to lately?",
+  Spanish:
+    "¡Hola! Qué buena elección 👋 Soy Luna, y estoy aquí para ayudarte a practicar español de forma natural y sin presión.\n\n¿Cuéntame, qué has estado haciendo últimamente?",
+  Portuguese:
+    "Olá! Que ótima escolha 👋 Sou a Luna, e estou aqui para te ajudar a praticar português de forma natural e sem pressão.\n\nMe conta — o que você tem feito ultimamente?",
+};
 
 let history: { role: "user" | "assistant"; content: string }[] = [];
+let currentLanguage = "English";
 
 router.post("/chat", async (req, res) => {
-  const { message } = req.body as { message?: string };
+  const { message, language } = req.body as {
+    message?: string;
+    language?: string;
+  };
 
   if (!message || !message.trim()) {
     res.status(400).json({ error: "Message is required" });
     return;
   }
+
+  if (language) currentLanguage = language;
 
   history.push({ role: "user", content: message });
 
@@ -37,7 +55,7 @@ router.post("/chat", async (req, res) => {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 400,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(currentLanguage),
       messages: history.slice(-20),
     });
 
@@ -58,6 +76,7 @@ router.post("/chat", async (req, res) => {
 
 router.post("/clear", (_req, res) => {
   history = [];
+  currentLanguage = "English";
   res.json({ ok: true });
 });
 
@@ -79,8 +98,128 @@ router.get("/", (_req, res) => {
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow: hidden;
     }
 
+    /* ── Welcome screen ── */
+    #welcome {
+      position: fixed;
+      inset: 0;
+      background: #0f1117;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      z-index: 100;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    #welcome.hiding {
+      opacity: 0;
+      transform: translateY(-18px);
+      pointer-events: none;
+    }
+
+    .welcome-logo {
+      font-size: 48px;
+      margin-bottom: 22px;
+      animation: floatIn 0.6s ease both;
+    }
+    .welcome-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #f0f2f8;
+      text-align: center;
+      animation: floatIn 0.65s 0.05s ease both;
+    }
+    .welcome-sub {
+      font-size: 13.5px;
+      color: #454e66;
+      margin-top: 8px;
+      margin-bottom: 42px;
+      text-align: center;
+      animation: floatIn 0.65s 0.1s ease both;
+    }
+
+    .lang-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 340px;
+      padding: 0 20px;
+    }
+
+    .lang-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #151822;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 18px 22px;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s;
+      animation: floatIn 0.6s ease both;
+      user-select: none;
+    }
+    .lang-card:nth-child(1) { animation-delay: 0.15s; }
+    .lang-card:nth-child(2) { animation-delay: 0.22s; }
+    .lang-card:nth-child(3) { animation-delay: 0.29s; }
+
+    .lang-card:hover {
+      background: #1c2030;
+      border-color: rgba(245,166,35,0.35);
+      transform: translateY(-2px);
+    }
+    .lang-card:active { transform: translateY(0) scale(0.98); }
+
+    .lang-flag { font-size: 28px; line-height: 1; }
+    .lang-info { flex: 1; }
+    .lang-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e8eaf0;
+      letter-spacing: -0.01em;
+    }
+    .lang-native {
+      font-size: 12px;
+      color: #454e66;
+      margin-top: 2px;
+    }
+    .lang-arrow {
+      font-size: 16px;
+      color: #2d3448;
+      transition: color 0.18s, transform 0.18s;
+    }
+    .lang-card:hover .lang-arrow {
+      color: #f5a623;
+      transform: translateX(3px);
+    }
+
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── App shell (hidden until language chosen) ── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: 100dvh;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+    #app.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── Header ── */
     header {
       width: 100%;
       max-width: 700px;
@@ -89,18 +228,26 @@ router.get("/", (_req, res) => {
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
     }
-
     .brand { display: flex; align-items: center; gap: 10px; }
-    .brand-icon { font-size: 26px; }
+    .brand-icon { font-size: 24px; }
     .brand-name {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       letter-spacing: -0.03em;
       color: #f5a623;
     }
     .brand-sub { font-size: 12px; color: #555f72; margin-top: 1px; }
-
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .lang-badge {
+      font-size: 12px;
+      color: #666;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
     .clear-btn {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.1);
@@ -113,6 +260,7 @@ router.get("/", (_req, res) => {
     }
     .clear-btn:hover { border-color: #666; color: #aaa; }
 
+    /* ── Chat area ── */
     #chat {
       flex: 1;
       width: 100%;
@@ -124,7 +272,6 @@ router.get("/", (_req, res) => {
       gap: 14px;
       scroll-behavior: smooth;
     }
-
     #chat::-webkit-scrollbar { width: 4px; }
     #chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
 
@@ -132,13 +279,12 @@ router.get("/", (_req, res) => {
       display: flex;
       gap: 10px;
       align-items: flex-start;
-      animation: fadeUp 0.2s ease;
+      animation: fadeUp 0.22s ease;
     }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
     .msg.user { flex-direction: row-reverse; }
 
     .avatar {
@@ -150,7 +296,6 @@ router.get("/", (_req, res) => {
       background: rgba(245,166,35,0.12);
       border: 1px solid rgba(245,166,35,0.2);
     }
-
     .msg.user .avatar {
       background: rgba(255,255,255,0.05);
       border-color: rgba(255,255,255,0.08);
@@ -166,7 +311,6 @@ router.get("/", (_req, res) => {
       line-height: 1.65;
       color: #dde1ec;
     }
-
     .msg.user .bubble {
       background: #f5a623;
       border-color: #f5a623;
@@ -198,13 +342,14 @@ router.get("/", (_req, res) => {
       color: #f87171;
     }
 
+    /* ── Input bar ── */
     footer {
       width: 100%;
       max-width: 700px;
       padding: 14px 20px 20px;
       border-top: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
     }
-
     .input-row {
       display: flex;
       gap: 10px;
@@ -218,7 +363,6 @@ router.get("/", (_req, res) => {
       border-color: rgba(245,166,35,0.5);
       box-shadow: 0 0 0 3px rgba(245,166,35,0.08);
     }
-
     #input {
       flex: 1;
       background: transparent;
@@ -232,7 +376,6 @@ router.get("/", (_req, res) => {
       line-height: 1.5;
     }
     #input::placeholder { color: #3d4456; }
-
     #send {
       background: #f5a623;
       color: #1a0e00;
@@ -249,56 +392,126 @@ router.get("/", (_req, res) => {
     #send:hover { background: #e8941a; }
     #send:active { transform: scale(0.96); }
     #send:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .hint {
-      font-size: 11px;
-      color: #3d4456;
-      margin-top: 8px;
-      padding: 0 4px;
-    }
+    .hint { font-size: 11px; color: #3d4456; margin-top: 8px; padding: 0 4px; }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <div class="brand-icon">🌍</div>
-    <div>
-      <div class="brand-name">Luna</div>
-      <div class="brand-sub">Language Practice</div>
+<!-- Welcome Screen -->
+<div id="welcome">
+  <div class="welcome-logo">🌍</div>
+  <div class="welcome-title">Choose how you want to practice today</div>
+  <div class="welcome-sub">This is your space to practice without pressure.</div>
+  <div class="lang-cards">
+    <div class="lang-card" onclick="selectLanguage('English', '🇺🇸', 'English')">
+      <div class="lang-flag">🇺🇸</div>
+      <div class="lang-info">
+        <div class="lang-name">English</div>
+        <div class="lang-native">American English</div>
+      </div>
+      <div class="lang-arrow">›</div>
     </div>
-  </div>
-  <button class="clear-btn" onclick="clearChat()">&#8634; New chat</button>
-</header>
-
-<div id="chat">
-  <div class="msg">
-    <div class="avatar">🌍</div>
-    <div class="bubble">
-      Hey! I'm Luna, your language practice companion 👋<br><br>
-      Which language would you like to practice today — English, Spanish, Portuguese, or another?
+    <div class="lang-card" onclick="selectLanguage('Spanish', '🇪🇸', 'Español')">
+      <div class="lang-flag">🇪🇸</div>
+      <div class="lang-info">
+        <div class="lang-name">Spanish</div>
+        <div class="lang-native">Español</div>
+      </div>
+      <div class="lang-arrow">›</div>
+    </div>
+    <div class="lang-card" onclick="selectLanguage('Portuguese', '🇧🇷', 'Português')">
+      <div class="lang-flag">🇧🇷</div>
+      <div class="lang-info">
+        <div class="lang-name">Portuguese</div>
+        <div class="lang-native">Português</div>
+      </div>
+      <div class="lang-arrow">›</div>
     </div>
   </div>
 </div>
 
-<footer>
-  <div class="input-row">
-    <textarea
-      id="input"
-      rows="1"
-      placeholder="Type your message..."
-      onkeydown="handleKey(event)"
-      oninput="autoResize(this)"
-    ></textarea>
-    <button id="send" onclick="sendMessage()">Send</button>
-  </div>
-  <div class="hint">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</div>
-</footer>
+<!-- App Shell -->
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🌍</div>
+      <div>
+        <div class="brand-name">Luna</div>
+        <div class="brand-sub">Language Practice</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="lang-badge" id="lang-badge"></span>
+      <button class="clear-btn" onclick="returnToWelcome()">&#8634; New chat</button>
+    </div>
+  </header>
+
+  <div id="chat"></div>
+
+  <footer>
+    <div class="input-row">
+      <textarea
+        id="input"
+        rows="1"
+        placeholder="Type your message..."
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button id="send" onclick="sendMessage()">Send</button>
+    </div>
+    <div class="hint">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</div>
+  </footer>
+</div>
 
 <script>
-  const chat = document.getElementById("chat");
-  const input = document.getElementById("input");
-  const sendBtn = document.getElementById("send");
+  const welcomeEl = document.getElementById("welcome");
+  const appEl     = document.getElementById("app");
+  const chat      = document.getElementById("chat");
+  const input     = document.getElementById("input");
+  const sendBtn   = document.getElementById("send");
+  const langBadge = document.getElementById("lang-badge");
+
+  let chosenLanguage = null;
+  let chosenFlag = "";
+
+  const OPENING = {
+    English:    "Hey, great choice! 👋 I'm Luna, and I'm here to help you practice English in a relaxed, pressure-free way.\\n\\nTell me — what's something you've been up to lately?",
+    Spanish:    "¡Hola! Qué buena elección 👋 Soy Luna, y estoy aquí para ayudarte a practicar español de forma natural y sin presión.\\n\\n¿Cuéntame, qué has estado haciendo últimamente?",
+    Portuguese: "Olá! Que ótima escolha 👋 Sou a Luna, e estou aqui para te ajudar a praticar português de forma natural e sem pressão.\\n\\nMe conta — o que você tem feito ultimamente?"
+  };
+
+  async function selectLanguage(lang, flag, nativeName) {
+    chosenLanguage = lang;
+    chosenFlag = flag;
+
+    langBadge.textContent = flag + " " + nativeName;
+
+    // Fade out welcome, fade in app
+    welcomeEl.classList.add("hiding");
+    setTimeout(() => {
+      welcomeEl.style.display = "none";
+      appEl.classList.add("visible");
+      input.focus();
+    }, 450);
+
+    // Clear server history and set language
+    await fetch("/api/clear", { method: "POST" });
+
+    // Show Luna's opening message
+    const opening = OPENING[lang] || OPENING.English;
+    addMessage("assistant", opening);
+  }
+
+  function returnToWelcome() {
+    chat.innerHTML = "";
+    chosenLanguage = null;
+    appEl.classList.remove("visible");
+    welcomeEl.style.display = "flex";
+    requestAnimationFrame(() => {
+      welcomeEl.classList.remove("hiding");
+    });
+    fetch("/api/clear", { method: "POST" });
+  }
 
   function autoResize(el) {
     el.style.height = "auto";
@@ -320,7 +533,7 @@ router.get("/", (_req, res) => {
     const div = document.createElement("div");
     div.className = "msg" + (role === "user" ? " user" : "");
     div.innerHTML =
-      '<div class="avatar">' + (role === "user" ? "👤" : "🌍") + "</div>" +
+      '<div class="avatar">' + (role === "user" ? "👤" : chosenFlag || "🌍") + "</div>" +
       '<div class="bubble' + (isError ? " error-bubble" : "") + '">' +
       text.replace(/\\n/g, "<br>") +
       "</div>";
@@ -334,7 +547,7 @@ router.get("/", (_req, res) => {
     div.className = "msg typing";
     div.id = "typing";
     div.innerHTML =
-      '<div class="avatar">🌍</div>' +
+      '<div class="avatar">' + (chosenFlag || "🌍") + "</div>" +
       '<div class="bubble"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
     chat.appendChild(div);
     scrollToBottom();
@@ -347,7 +560,7 @@ router.get("/", (_req, res) => {
 
   async function sendMessage() {
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || !chosenLanguage) return;
 
     addMessage("user", text);
     input.value = "";
@@ -359,7 +572,7 @@ router.get("/", (_req, res) => {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, language: chosenLanguage }),
       });
 
       const data = await res.json();
@@ -378,14 +591,6 @@ router.get("/", (_req, res) => {
     sendBtn.disabled = false;
     input.focus();
   }
-
-  async function clearChat() {
-    await fetch("/api/clear", { method: "POST" });
-    const msgs = chat.querySelectorAll(".msg");
-    msgs.forEach((m, i) => { if (i > 0) m.remove(); });
-  }
-
-  input.focus();
 </script>
 
 </body>
