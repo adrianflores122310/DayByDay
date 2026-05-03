@@ -441,6 +441,144 @@ router.get("/", (_req, res) => {
       border-color: rgba(245,166,35,0.4);
       box-shadow: 0 0 0 3px rgba(245,166,35,0.06);
     }
+
+    /* ── Voice Mode ── */
+    #voice-mode {
+      position: fixed; inset: 0; z-index: 200;
+      background: #080b12;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0;
+      opacity: 0; transition: opacity 0.4s ease;
+    }
+    #voice-mode.visible { opacity: 1; }
+    #voice-mode.gone    { display: none; }
+
+    /* Sphere */
+    #sphere-wrap {
+      position: relative;
+      width: 200px; height: 200px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    .v-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(245,166,35,0.18);
+      animation: vRingIdle 3s ease-in-out infinite;
+    }
+    .v-ring:nth-child(1) { width: 130px; height: 130px; animation-delay: 0s; }
+    .v-ring:nth-child(2) { width: 162px; height: 162px; animation-delay: 0.4s; }
+    .v-ring:nth-child(3) { width: 196px; height: 196px; animation-delay: 0.8s; }
+
+    @keyframes vRingIdle {
+      0%, 100% { opacity: 0.25; transform: scale(1);   }
+      50%       { opacity: 0.55; transform: scale(1.04); }
+    }
+
+    #sphere-wrap[data-state="listening"] .v-ring {
+      animation: vRingListen 0.7s ease-in-out infinite;
+      border-color: rgba(245,166,35,0.45);
+    }
+    #sphere-wrap[data-state="listening"] .v-ring:nth-child(1) { animation-delay: 0s; }
+    #sphere-wrap[data-state="listening"] .v-ring:nth-child(2) { animation-delay: 0.1s; }
+    #sphere-wrap[data-state="listening"] .v-ring:nth-child(3) { animation-delay: 0.2s; }
+    @keyframes vRingListen {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50%       { opacity: 1;   transform: scale(1.08); }
+    }
+
+    #sphere-wrap[data-state="speaking"] .v-ring {
+      animation: vRingSpeak 1.1s ease-out infinite;
+      border-color: rgba(245,166,35,0.6);
+    }
+    #sphere-wrap[data-state="speaking"] .v-ring:nth-child(1) { animation-delay: 0s; }
+    #sphere-wrap[data-state="speaking"] .v-ring:nth-child(2) { animation-delay: 0.28s; }
+    #sphere-wrap[data-state="speaking"] .v-ring:nth-child(3) { animation-delay: 0.56s; }
+    @keyframes vRingSpeak {
+      0%   { opacity: 0.8; transform: scale(0.95); }
+      60%  { opacity: 0.2; transform: scale(1.14); }
+      100% { opacity: 0;   transform: scale(1.22); }
+    }
+
+    #sphere-core {
+      width: 88px; height: 88px; border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #f5c060, #f5a623 45%, #c47a0f 75%, #7a4a05);
+      box-shadow: 0 0 28px 8px rgba(245,166,35,0.25), 0 0 60px 20px rgba(245,166,35,0.08);
+      transition: box-shadow 0.4s ease, transform 0.3s ease;
+      position: relative; z-index: 1;
+      animation: coreIdle 3.2s ease-in-out infinite;
+    }
+    @keyframes coreIdle {
+      0%, 100% { transform: scale(1);    box-shadow: 0 0 28px 8px rgba(245,166,35,0.22), 0 0 60px 20px rgba(245,166,35,0.07); }
+      50%       { transform: scale(1.05); box-shadow: 0 0 36px 12px rgba(245,166,35,0.35), 0 0 80px 28px rgba(245,166,35,0.12); }
+    }
+    #sphere-wrap[data-state="listening"] #sphere-core {
+      animation: coreListen 0.65s ease-in-out infinite;
+    }
+    @keyframes coreListen {
+      0%, 100% { transform: scale(1);    box-shadow: 0 0 32px 10px rgba(245,166,35,0.4),  0 0 70px 24px rgba(245,166,35,0.15); }
+      50%       { transform: scale(1.09); box-shadow: 0 0 48px 18px rgba(245,166,35,0.65), 0 0 90px 34px rgba(245,166,35,0.22); }
+    }
+    #sphere-wrap[data-state="speaking"] #sphere-core {
+      animation: coreSpeak 0.9s ease-in-out infinite;
+    }
+    @keyframes coreSpeak {
+      0%, 100% { transform: scale(1.02); box-shadow: 0 0 40px 14px rgba(245,166,35,0.55), 0 0 80px 30px rgba(245,166,35,0.2); }
+      50%       { transform: scale(1.07); box-shadow: 0 0 56px 22px rgba(245,166,35,0.75), 0 0 100px 40px rgba(245,166,35,0.28); }
+    }
+
+    #voice-status {
+      font-size: 15px; color: #555f72; letter-spacing: 0.04em;
+      text-transform: uppercase; font-weight: 600;
+      height: 20px; transition: color 0.3s ease;
+      margin-bottom: 12px;
+    }
+    #voice-status.st-listening { color: #f5a623; }
+    #voice-status.st-speaking  { color: #a78bfa; }
+
+    #voice-transcript {
+      font-size: 16px; color: rgba(232,234,240,0.6);
+      max-width: 400px; text-align: center; line-height: 1.6;
+      min-height: 50px; padding: 0 24px;
+      font-style: italic; transition: opacity 0.3s;
+    }
+
+    #voice-controls {
+      position: absolute; bottom: 36px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    #exit-voice {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #454e66; border-radius: 10px;
+      padding: 9px 20px; font-size: 13px;
+      cursor: pointer; transition: all 0.18s;
+      font-family: inherit;
+    }
+    #exit-voice:hover { border-color: #555f72; color: #aaa; }
+
+    #voice-tap {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: rgba(245,166,35,0.08);
+      border: 1.5px solid rgba(245,166,35,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s;
+    }
+    #voice-tap:hover { background: rgba(245,166,35,0.15); border-color: rgba(245,166,35,0.55); }
+    #voice-tap:active { transform: scale(0.93); }
+
+    .voice-mode-btn {
+      background: rgba(245,166,35,0.1);
+      border: 1px solid rgba(245,166,35,0.25);
+      color: #f5a623;
+      border-radius: 8px; padding: 4px 11px;
+      font-size: 12px; cursor: pointer;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .voice-mode-btn:hover { background: rgba(245,166,35,0.18); border-color: rgba(245,166,35,0.5); }
   </style>
 </head>
 <body>
@@ -521,6 +659,7 @@ router.get("/", (_req, res) => {
     </div>
     <div class="header-right">
       <span class="meta-badge" id="meta-badge"></span>
+      <button class="voice-mode-btn" onclick="enterVoiceMode()">&#9679; Voice Mode</button>
       <button class="clear-btn" onclick="restart()">&#8634; New chat</button>
     </div>
   </header>
@@ -534,6 +673,22 @@ router.get("/", (_req, res) => {
     </div>
     <div class="hint" id="hint">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</div>
   </footer>
+</div>
+
+<!-- Voice Mode Overlay -->
+<div id="voice-mode" class="gone">
+  <div id="sphere-wrap" data-state="idle">
+    <div class="v-ring"></div>
+    <div class="v-ring"></div>
+    <div class="v-ring"></div>
+    <div id="sphere-core"></div>
+  </div>
+  <div id="voice-status">Ready</div>
+  <div id="voice-transcript"></div>
+  <div id="voice-controls">
+    <div id="voice-tap" onclick="voiceTap()" title="Tap to speak">🎙</div>
+    <button id="exit-voice" onclick="exitVoiceMode()">← Back to chat</button>
+  </div>
 </div>
 
 <script>
@@ -789,7 +944,147 @@ router.get("/", (_req, res) => {
 
   // Stop speech when restarting
   const _origRestart = restart;
-  function restart() { stopSpeaking(); stopListening(); _origRestart(); }
+  function restart() { stopSpeaking(); stopListening(); exitVoiceMode(true); _origRestart(); }
+
+  // ── Voice Mode ────────────────────────────────────────────
+  const voiceModeEl    = document.getElementById("voice-mode");
+  const sphereWrap     = document.getElementById("sphere-wrap");
+  const voiceStatus    = document.getElementById("voice-status");
+  const voiceTranscript = document.getElementById("voice-transcript");
+  const voiceTapBtn    = document.getElementById("voice-tap");
+
+  let voiceActive = false;
+  let voiceListening = false;
+  let voiceRec = null;
+
+  function setSphereState(state) {
+    sphereWrap.dataset.state = state;
+    voiceStatus.className = "";
+    voiceTranscript.style.opacity = "1";
+    if (state === "listening") {
+      voiceStatus.textContent = "Listening…";
+      voiceStatus.classList.add("st-listening");
+    } else if (state === "speaking") {
+      voiceStatus.textContent = "Speaking…";
+      voiceStatus.classList.add("st-speaking");
+    } else {
+      voiceStatus.textContent = "Tap to speak";
+      voiceTranscript.style.opacity = "0.4";
+    }
+  }
+
+  function enterVoiceMode() {
+    if (!chosenLanguage) return; // need to pick language first
+    voiceActive = true;
+    voiceModeEl.classList.remove("gone");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      voiceModeEl.classList.add("visible");
+    }));
+    setSphereState("idle");
+    voiceTranscript.textContent = "";
+    // auto-start listening after brief pause
+    setTimeout(() => { if (voiceActive) voiceStartListen(); }, 600);
+  }
+
+  function exitVoiceMode(silent) {
+    voiceActive = false;
+    voiceStopListen();
+    stopSpeaking();
+    voiceModeEl.classList.remove("visible");
+    setTimeout(() => voiceModeEl.classList.add("gone"), 400);
+  }
+
+  function voiceTap() {
+    if (!voiceActive) return;
+    if (voiceListening) { voiceStopListen(); setSphereState("idle"); }
+    else { stopSpeaking(); voiceStartListen(); }
+  }
+
+  function voiceStartListen() {
+    if (!SpeechRecognition || !voiceActive) return;
+    if (!voiceRec) {
+      voiceRec = new SpeechRecognition();
+      voiceRec.continuous = false;
+      voiceRec.interimResults = true;
+
+      voiceRec.onstart = () => {
+        voiceListening = true;
+        setSphereState("listening");
+        voiceTranscript.textContent = "";
+      };
+
+      voiceRec.onresult = (e) => {
+        const t = Array.from(e.results).map(r => r[0].transcript).join("");
+        voiceTranscript.textContent = t;
+        if (e.results[e.results.length - 1].isFinal && t.trim()) {
+          voiceStopListen();
+          voiceSend(t.trim());
+        }
+      };
+
+      voiceRec.onerror = () => { voiceListening = false; setSphereState("idle"); };
+      voiceRec.onend   = () => { voiceListening = false; };
+    }
+
+    voiceRec.lang = LANG_CODES[chosenLanguage] || "en-US";
+    try { voiceRec.start(); } catch(e) {}
+  }
+
+  function voiceStopListen() {
+    voiceListening = false;
+    try { if (voiceRec) voiceRec.stop(); } catch(e) {}
+  }
+
+  async function voiceSend(text) {
+    if (!voiceActive) return;
+    setSphereState("idle");
+    voiceTranscript.textContent = text;
+
+    // mirror into chat history too
+    addMessage("user", text);
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, language: chosenLanguage, difficulty: chosenDifficulty }),
+      });
+      const data = await res.json();
+
+      if (!voiceActive) return;
+
+      if (res.ok && data.reply) {
+        addMessage("assistant", data.reply);
+        setSphereState("speaking");
+        voiceTranscript.textContent = "";
+
+        const clean = data.reply.replace(/[*_#~>]/g, "").replace(/\u0060/g, "").replace(/\\n/g, " ");
+        const utt = new SpeechSynthesisUtterance(clean);
+        utt.lang = LANG_CODES[chosenLanguage] || "en-US";
+        utt.rate = 0.95; utt.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const match = voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]) && !v.name.includes("Google"))
+                   || voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]));
+        if (match) utt.voice = match;
+
+        utt.onend = () => {
+          if (!voiceActive) return;
+          setSphereState("idle");
+          // wait a beat then listen again
+          setTimeout(() => { if (voiceActive) voiceStartListen(); }, 700);
+        };
+
+        window.speechSynthesis.speak(utt);
+      } else {
+        setSphereState("idle");
+        voiceTranscript.textContent = "Something went wrong — try again.";
+        setTimeout(() => { if (voiceActive) voiceStartListen(); }, 1800);
+      }
+    } catch(e) {
+      setSphereState("idle");
+      voiceTranscript.textContent = "Network error.";
+    }
+  }
 </script>
 
 </body>
