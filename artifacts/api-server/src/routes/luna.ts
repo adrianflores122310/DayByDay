@@ -167,6 +167,23 @@ router.post("/clear", (_req, res) => {
   res.json({ ok: true });
 });
 
+router.post("/translate", async (req, res) => {
+  const { text, from, to } = req.body as { text?: string; from?: string; to?: string };
+  if (!text || !from || !to) { res.status(400).json({ error: "Missing fields" }); return; }
+  try {
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 120,
+      system: `Translate the following text from ${from} to ${to}. Return ONLY the translation — no quotes, no labels, no explanations.`,
+      messages: [{ role: "user", content: text }],
+    });
+    res.json({ translation: (response.content[0] as { text: string }).text.trim() });
+  } catch (err) {
+    req.log.error({ err }, "Translation error");
+    res.status(500).json({ error: "Translation failed" });
+  }
+});
+
 router.get("/", (_req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -606,6 +623,34 @@ router.get("/", (_req, res) => {
     }
     #exit-voice:hover { border-color: #555f72; color: #aaa; }
 
+    /* Subtitles */
+    #voice-subtitles {
+      position: absolute;
+      bottom: 130px;
+      left: 50%; transform: translateX(-50%);
+      width: min(520px, 88%);
+      text-align: center;
+      pointer-events: none;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .vsub {
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    .vsub.show { opacity: 1; transform: translateY(0); }
+    .vsub-main {
+      font-size: 15px; font-weight: 500; line-height: 1.55;
+      color: rgba(232,234,240,0.88);
+      text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+    }
+    .vsub-user .vsub-main { color: rgba(245,166,35,0.9); }
+    .vsub-sub {
+      font-size: 12.5px; font-style: italic; line-height: 1.45;
+      color: rgba(180,185,205,0.42);
+      margin-top: 3px;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+    }
+
     #voice-tap {
       width: 54px; height: 54px; border-radius: 50%;
       background: rgba(245,166,35,0.08);
@@ -731,7 +776,7 @@ router.get("/", (_req, res) => {
     <div id="sphere-core"></div>
   </div>
   <div id="voice-status">Ready</div>
-  <div id="voice-transcript"></div>
+  <div id="voice-subtitles"></div>
   <div id="voice-controls">
     <div id="voice-tap" onclick="voiceTap()" title="Tap to speak">🎙</div>
     <button id="exit-voice" onclick="exitVoiceMode()">← Back to chat</button>
@@ -1046,10 +1091,54 @@ router.get("/", (_req, res) => {
   }
 
   // ── Voice Mode ────────────────────────────────────────────
-  const voiceModeEl     = document.getElementById("voice-mode");
-  const sphereWrap      = document.getElementById("sphere-wrap");
-  const voiceStatus     = document.getElementById("voice-status");
-  const voiceTranscript = document.getElementById("voice-transcript");
+  const voiceModeEl   = document.getElementById("voice-mode");
+  const sphereWrap    = document.getElementById("sphere-wrap");
+  const voiceStatus   = document.getElementById("voice-status");
+  const voiceSubs     = document.getElementById("voice-subtitles");
+
+  // Translation target per practice language
+  const TRANSLATE_TO = { English: "Spanish", Spanish: "English", Portuguese: "Spanish" };
+
+  let subTimer = null;
+
+  function showSubtitle(text, role) {
+    if (!voiceActive || !voiceSubs) return;
+    // Clear previous subtitle
+    if (subTimer) clearTimeout(subTimer);
+    voiceSubs.innerHTML = "";
+
+    const wrap = document.createElement("div");
+    wrap.className = "vsub vsub-" + role;
+    const mainEl = document.createElement("div");
+    mainEl.className = "vsub-main";
+    mainEl.textContent = text;
+    const subEl = document.createElement("div");
+    subEl.className = "vsub-sub";
+    subEl.textContent = "…";
+    wrap.appendChild(mainEl);
+    wrap.appendChild(subEl);
+    voiceSubs.appendChild(wrap);
+
+    // Fade in
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add("show")));
+
+    // Fetch translation asynchronously
+    const toLang = TRANSLATE_TO[chosenLanguage] || "Spanish";
+    fetch("/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, from: chosenLanguage, to: toLang }),
+    })
+      .then(r => r.json())
+      .then(d => { if (subEl.isConnected) subEl.textContent = d.translation || ""; })
+      .catch(() => { if (subEl.isConnected) subEl.textContent = ""; });
+
+    // Fade out after 6 s
+    subTimer = setTimeout(() => {
+      wrap.classList.remove("show");
+      setTimeout(() => { if (voiceSubs.contains(wrap)) voiceSubs.removeChild(wrap); }, 500);
+    }, 6000);
+  }
 
   let voiceActive   = false;
   let voiceListening = false;
@@ -1058,7 +1147,6 @@ router.get("/", (_req, res) => {
   function setSphereState(state) {
     sphereWrap.dataset.state = state;
     voiceStatus.className = "";
-    voiceTranscript.style.opacity = "1";
     if (state === "listening") {
       voiceStatus.textContent = "Listening…";
       voiceStatus.classList.add("st-listening");
@@ -1067,7 +1155,6 @@ router.get("/", (_req, res) => {
       voiceStatus.classList.add("st-speaking");
     } else {
       voiceStatus.textContent = "Tap to speak";
-      voiceTranscript.style.opacity = "0.4";
     }
   }
 
@@ -1079,7 +1166,6 @@ router.get("/", (_req, res) => {
       voiceModeEl.classList.add("visible");
     }));
     setSphereState("idle");
-    voiceTranscript.textContent = "";
     // auto-start listening after brief pause
     setTimeout(() => { if (voiceActive) voiceStartListen(); }, 600);
   }
@@ -1108,14 +1194,13 @@ router.get("/", (_req, res) => {
       voiceRec.onstart = () => {
         voiceListening = true;
         setSphereState("listening");
-        voiceTranscript.textContent = "";
       };
 
       voiceRec.onresult = (e) => {
         const t = Array.from(e.results).map(r => r[0].transcript).join("");
-        voiceTranscript.textContent = t;
         if (e.results[e.results.length - 1].isFinal && t.trim()) {
           voiceStopListen();
+          showSubtitle(t.trim(), "user");
           voiceSend(t.trim());
         }
       };
@@ -1136,7 +1221,6 @@ router.get("/", (_req, res) => {
   async function voiceSend(text) {
     if (!voiceActive) return;
     setSphereState("idle");
-    voiceTranscript.textContent = text;
 
     try {
       const res = await fetch("/chat", {
@@ -1150,7 +1234,7 @@ router.get("/", (_req, res) => {
 
       if (res.ok && data.reply) {
         setSphereState("speaking");
-        voiceTranscript.textContent = "";
+        showSubtitle(data.reply, "assistant");
 
         const clean = cleanForTTS(data.reply);
         const utt   = new SpeechSynthesisUtterance(clean);
@@ -1169,12 +1253,10 @@ router.get("/", (_req, res) => {
         window.speechSynthesis.speak(utt);
       } else {
         setSphereState("idle");
-        voiceTranscript.textContent = "Something went wrong. Tap to try again.";
         setTimeout(() => { if (voiceActive) voiceStartListen(); }, 2000);
       }
     } catch(e) {
       setSphereState("idle");
-      voiceTranscript.textContent = "Network error. Tap to retry.";
     }
   }
 </script>
