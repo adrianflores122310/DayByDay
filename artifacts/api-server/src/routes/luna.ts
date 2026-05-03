@@ -2,7 +2,10 @@ import { Router } from "express";
 import Anthropic from "@anthropic-ai/sdk";
 
 const router = Router();
-const client = new Anthropic();
+const client = new Anthropic({
+  apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
+});
 
 const SYSTEM_PROMPT = `You are Luna, a friendly and encouraging language practice companion.
 
@@ -32,7 +35,7 @@ router.post("/chat", async (req, res) => {
 
   try {
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       max_tokens: 400,
       system: SYSTEM_PROMPT,
       messages: history.slice(-20),
@@ -353,7 +356,7 @@ router.get("/", (_req, res) => {
     showTyping();
 
     try {
-      const res = await fetch("/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
@@ -377,7 +380,7 @@ router.get("/", (_req, res) => {
   }
 
   async function clearChat() {
-    await fetch("/clear", { method: "POST" });
+    await fetch("/api/clear", { method: "POST" });
     const msgs = chat.querySelectorAll(".msg");
     msgs.forEach((m, i) => { if (i > 0) m.remove(); });
   }
