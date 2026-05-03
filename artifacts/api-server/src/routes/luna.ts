@@ -8,17 +8,20 @@ const client = new Anthropic({
 });
 
 type Difficulty = "simple" | "normal" | "challenge";
+type Mode = "chat" | "voice";
 
-function buildSystemPrompt(language: string, difficulty: Difficulty): string {
+function buildChatSystemPrompt(language: string, difficulty: Difficulty): string {
   const difficultyGuide: Record<Difficulty, string> = {
     simple: `- Use only simple, everyday vocabulary. Keep sentences short and clear (5–10 words).
 - Speak slowly in terms of information density — one idea per sentence.
 - Corrections are very gentle: frame them as "another way to say that" rather than pointing out errors.
-- Be extra warm and reassuring. Never make the user feel like they made a mistake.`,
+- Be extra warm and reassuring. Never make the user feel like they made a mistake.
+- You may use emojis sparingly to keep the tone friendly and approachable.`,
     normal: `- Use natural, conversational vocabulary — not too simple, not too advanced.
 - Mix short and medium sentences. Sound like a real friend talking.
 - Correct mistakes once per reply using: "Small tip: instead of '...' you could say '...' — sounds more natural!"
-- Keep the conversation engaging and flowing naturally.`,
+- Keep the conversation engaging and flowing naturally.
+- Use emojis where they add warmth or emphasis.`,
     challenge: `- Use richer vocabulary and more complex sentence structures.
 - Dive deeper into topics. Ask follow-up questions that make the user think.
 - Point out subtle mistakes — grammar, idiom misuse, unnatural phrasing — and explain briefly why.
@@ -26,7 +29,7 @@ function buildSystemPrompt(language: string, difficulty: Difficulty): string {
 - Keep the tone warm but intellectually stimulating.`,
   };
 
-  return `You are Luna, a friendly and encouraging language practice companion.
+  return `You are Luna, a friendly and encouraging language practice companion for text-based chat.
 
 The user has chosen to practice: ${language}.
 
@@ -37,6 +40,44 @@ Your core rules:
 - End every reply with a follow-up question to keep conversation flowing.
 - Keep replies to 2–4 sentences (slightly longer for "Challenge me").
 - Be warm, human, and encouraging — never robotic or academic.
+- You can use formatting, emojis, corrections in brackets, and suggestions — this is a chat interface.
+
+Difficulty-specific guidance:
+${difficultyGuide[difficulty]}`;
+}
+
+function buildVoiceSystemPrompt(language: string, difficulty: Difficulty): string {
+  const difficultyGuide: Record<Difficulty, string> = {
+    simple: `- Use only simple, everyday words. One clear idea per sentence.
+- Speak as you would to someone learning the language for the first time.
+- If they make a mistake, gently rephrase your response using the correct form naturally — do not call it out explicitly.
+- Keep a warm, unhurried tone.`,
+    normal: `- Speak naturally, as you would in a real conversation.
+- Keep sentences varied but clear. Avoid anything that sounds like reading from a script.
+- If the user makes an error, weave the correct form into your reply naturally without drawing attention to it.
+- Keep the energy conversational and engaged.`,
+    challenge: `- Use richer, more precise language. Expand on ideas briefly.
+- Ask follow-up questions that invite the user to think and elaborate.
+- Occasionally introduce a new word or phrase naturally in context.
+- Correct errors by restating the idea correctly in your reply — no need to flag it explicitly.`,
+  };
+
+  return `You are Luna, a calm and intelligent voice assistant for language practice.
+
+The user has chosen to practice: ${language}.
+
+Difficulty mode: ${difficulty === "simple" ? "Keep it simple" : difficulty === "normal" ? "Let's talk normally" : "Challenge me"}
+
+CRITICAL — THIS IS A VOICE-ONLY INTERACTION. FOLLOW THESE RULES STRICTLY:
+- ALWAYS respond exclusively in ${language} — never switch languages.
+- NEVER use emojis, symbols, bullet points, asterisks, hashtags, or any markdown formatting.
+- NEVER describe actions, gestures, or visual elements.
+- Write ONLY words that sound natural when spoken aloud.
+- Keep responses short: 1–3 sentences maximum. Do not over-explain.
+- End with a single, simple follow-up question to keep the conversation going.
+- Your tone is: calm, clear, confident, slightly formal but warm. Like a smart personal assistant.
+- Natural pacing — vary sentence length. Avoid lists or structured formats entirely.
+- Never start a sentence with a symbol or number written as a digit (write "two" not "2").
 
 Difficulty-specific guidance:
 ${difficultyGuide[difficulty]}`;
@@ -74,10 +115,11 @@ let currentLanguage = "English";
 let currentDifficulty: Difficulty = "normal";
 
 router.post("/chat", async (req, res) => {
-  const { message, language, difficulty } = req.body as {
+  const { message, language, difficulty, mode } = req.body as {
     message?: string;
     language?: string;
     difficulty?: Difficulty;
+    mode?: Mode;
   };
 
   if (!message || !message.trim()) {
@@ -90,11 +132,16 @@ router.post("/chat", async (req, res) => {
 
   history.push({ role: "user", content: message });
 
+  const systemPrompt =
+    mode === "voice"
+      ? buildVoiceSystemPrompt(currentLanguage, currentDifficulty)
+      : buildChatSystemPrompt(currentLanguage, currentDifficulty);
+
   try {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 400,
-      system: buildSystemPrompt(currentLanguage, currentDifficulty),
+      max_tokens: mode === "voice" ? 180 : 400,
+      system: systemPrompt,
       messages: history.slice(-20),
     });
 
@@ -835,7 +882,7 @@ router.get("/", (_req, res) => {
       const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, language: chosenLanguage, difficulty: chosenDifficulty }),
+        body: JSON.stringify({ message: text, language: chosenLanguage, difficulty: chosenDifficulty, mode: "chat" }),
       });
       const data = await res.json();
       hideTyping();
@@ -1047,7 +1094,7 @@ router.get("/", (_req, res) => {
       const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, language: chosenLanguage, difficulty: chosenDifficulty }),
+        body: JSON.stringify({ message: text, language: chosenLanguage, difficulty: chosenDifficulty, mode: "voice" }),
       });
       const data = await res.json();
 
