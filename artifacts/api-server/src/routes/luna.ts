@@ -407,7 +407,40 @@ router.get("/", (_req, res) => {
     #send:hover { background: #e8941a; }
     #send:active { transform: scale(0.96); }
     #send:disabled { opacity: 0.45; cursor: not-allowed; }
-    .hint { font-size: 11px; color: #3d4456; margin-top: 8px; padding: 0 4px; }
+    .hint { font-size: 11px; color: #3d4456; margin-top: 8px; padding: 0 4px; transition: color 0.2s; }
+    .hint.listening-hint { color: #f5a623; }
+
+    #mic {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #555f72;
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-size: 16px;
+      cursor: pointer;
+      align-self: flex-end;
+      flex-shrink: 0;
+      transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.1s;
+      line-height: 1;
+    }
+    #mic:hover { border-color: #555f72; color: #aaa; }
+    #mic:active { transform: scale(0.94); }
+    #mic.active {
+      background: rgba(245,166,35,0.12);
+      border-color: rgba(245,166,35,0.5);
+      color: #f5a623;
+      animation: micPulse 1.4s ease infinite;
+    }
+    #mic:disabled { opacity: 0.3; cursor: not-allowed; animation: none; }
+    @keyframes micPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.25); }
+      50%       { box-shadow: 0 0 0 6px rgba(245,166,35,0); }
+    }
+
+    .input-row.listening {
+      border-color: rgba(245,166,35,0.4);
+      box-shadow: 0 0 0 3px rgba(245,166,35,0.06);
+    }
   </style>
 </head>
 <body>
@@ -496,9 +529,10 @@ router.get("/", (_req, res) => {
     <div class="input-row">
       <textarea id="input" rows="1" placeholder="Type your message..."
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="mic" onclick="toggleMic()" title="Hold to speak">🎙</button>
       <button id="send" onclick="sendMessage()">Send</button>
     </div>
-    <div class="hint">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</div>
+    <div class="hint" id="hint">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</div>
   </footer>
 </div>
 
@@ -635,6 +669,7 @@ router.get("/", (_req, res) => {
     const text = input.value.trim();
     if (!text || !chosenLanguage || !chosenDifficulty) return;
 
+    stopSpeaking();
     addMessage("user", text);
     input.value = "";
     input.style.height = "auto";
@@ -653,6 +688,7 @@ router.get("/", (_req, res) => {
         addMessage("assistant", "⚠️ " + (data.error || "Something went wrong."), true);
       } else {
         addMessage("assistant", data.reply);
+        speakReply(data.reply);
       }
     } catch (err) {
       hideTyping();
@@ -662,6 +698,98 @@ router.get("/", (_req, res) => {
     sendBtn.disabled = false;
     input.focus();
   }
+
+  // ── Voice: Speech-to-Text ────────────────────────────────
+  const LANG_CODES = { English: "en-US", Spanish: "es-ES", Portuguese: "pt-BR" };
+  const micBtn   = document.getElementById("mic");
+  const hintEl   = document.getElementById("hint");
+  const inputRow = document.querySelector(".input-row");
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isListening = false;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      isListening = true;
+      micBtn.classList.add("active");
+      inputRow.classList.add("listening");
+      hintEl.textContent = "Listening… speak now";
+      hintEl.classList.add("listening-hint");
+      input.placeholder = "Listening…";
+    };
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map(r => r[0].transcript).join("");
+      input.value = transcript;
+      autoResize(input);
+      if (e.results[e.results.length - 1].isFinal) {
+        stopListening();
+        if (transcript.trim()) sendMessage();
+      }
+    };
+
+    recognition.onerror = () => stopListening();
+    recognition.onend   = () => stopListening();
+  } else {
+    micBtn.disabled = true;
+    micBtn.title = "Voice not supported in this browser";
+  }
+
+  function toggleMic() {
+    if (!chosenLanguage) return;
+    if (isListening) { stopListening(); return; }
+    stopSpeaking();
+    recognition.lang = LANG_CODES[chosenLanguage] || "en-US";
+    try { recognition.start(); } catch(e) {}
+  }
+
+  function stopListening() {
+    if (!isListening) return;
+    isListening = false;
+    try { recognition.stop(); } catch(e) {}
+    micBtn.classList.remove("active");
+    inputRow.classList.remove("listening");
+    hintEl.innerHTML = "Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line";
+    hintEl.classList.remove("listening-hint");
+    input.placeholder = "Type your message…";
+  }
+
+  // ── Voice: Text-to-Speech ────────────────────────────────
+  function speakReply(text) {
+    if (!window.speechSynthesis) return;
+    stopSpeaking();
+    const clean = text.replace(/[*_#~>]/g, "").replace(/\u0060/g, "").replace(/\\n/g, " ");
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.lang = LANG_CODES[chosenLanguage] || "en-US";
+    utt.rate = 0.95;
+    utt.pitch = 1.05;
+    // prefer a natural voice for the language
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]) && !v.name.includes("Google")) ||
+                  voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]));
+    if (match) utt.voice = match;
+    window.speechSynthesis.speak(utt);
+  }
+
+  function stopSpeaking() {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  // Ensure voices load (Chrome loads them async)
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+
+  // Stop speech when restarting
+  const _origRestart = restart;
+  function restart() { stopSpeaking(); stopListening(); _origRestart(); }
 </script>
 
 </body>
