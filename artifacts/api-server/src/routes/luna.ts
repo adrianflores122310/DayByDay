@@ -819,11 +819,24 @@ router.get("/", (_req, res) => {
   }
 
   function restart() {
+    // Stop all active audio/listening first
+    stopSpeaking();
+    stopListening();
+    // Exit voice mode without triggering another restart
+    voiceActive = false;
+    try { if (voiceRec) voiceRec.stop(); } catch(e) {}
+    voiceListening = false;
+    if (voiceModeEl) {
+      voiceModeEl.classList.remove("visible");
+      setTimeout(() => voiceModeEl.classList.add("gone"), 400);
+    }
+    // Reset all state
     chat.innerHTML = "";
     chosenLanguage = null;
     chosenFlag = "";
     chosenNative = "";
     chosenDifficulty = null;
+    // Return to language screen
     appEl.classList.remove("visible");
     screenDiff.classList.add("gone");
     screenDiff.classList.add("hidden");
@@ -963,19 +976,62 @@ router.get("/", (_req, res) => {
   }
 
   // ── Voice: Text-to-Speech ────────────────────────────────
+
+  // Strip everything that sounds unnatural when spoken aloud
+  function cleanForTTS(text) {
+    return text
+      // Remove emoji (broad Unicode ranges)
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+      .replace(/[\u{2600}-\u{27BF}]/gu, "")
+      .replace(/[\u{FE00}-\u{FEFF}]/gu, "")
+      .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")
+      .replace(/[\u{1FA00}-\u{1FA9F}]/gu, "")
+      // Remove markdown symbols
+      .replace(/[*_#~>]/g, "")
+      .replace(/\u0060/g, "")
+      // Remove bracket corrections like [word] or (note: ...)
+      .replace(/\[.*?\]/g, "")
+      // Collapse multiple spaces / newlines into natural pauses
+      .replace(/\n+/g, ". ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
+  // Rank and pick the best available voice for a language code
+  function pickBestVoice(langCode) {
+    const voices = window.speechSynthesis.getVoices();
+    const lang   = langCode.toLowerCase();
+    const base   = lang.split("-")[0];
+
+    // Priority tiers: Google → Microsoft → enhanced/premium → any exact match → family match
+    const tiers = [
+      v => v.lang.toLowerCase() === lang && /google/i.test(v.name),
+      v => v.lang.toLowerCase().startsWith(base) && /google/i.test(v.name),
+      v => v.lang.toLowerCase() === lang && /microsoft/i.test(v.name),
+      v => v.lang.toLowerCase().startsWith(base) && /microsoft/i.test(v.name),
+      v => v.lang.toLowerCase() === lang && /(premium|enhanced|natural|neural)/i.test(v.name),
+      v => v.lang.toLowerCase().startsWith(base) && /(premium|enhanced|natural|neural)/i.test(v.name),
+      v => v.lang.toLowerCase() === lang,
+      v => v.lang.toLowerCase().startsWith(base),
+    ];
+
+    for (const test of tiers) {
+      const match = voices.find(test);
+      if (match) return match;
+    }
+    return null;
+  }
+
   function speakReply(text) {
     if (!window.speechSynthesis) return;
     stopSpeaking();
-    const clean = text.replace(/[*_#~>]/g, "").replace(/\u0060/g, "").replace(/\\n/g, " ");
-    const utt = new SpeechSynthesisUtterance(clean);
-    utt.lang = LANG_CODES[chosenLanguage] || "en-US";
-    utt.rate = 0.95;
-    utt.pitch = 1.05;
-    // prefer a natural voice for the language
-    const voices = window.speechSynthesis.getVoices();
-    const match = voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]) && !v.name.includes("Google")) ||
-                  voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]));
-    if (match) utt.voice = match;
+    const clean = cleanForTTS(text);
+    const utt   = new SpeechSynthesisUtterance(clean);
+    utt.lang    = LANG_CODES[chosenLanguage] || "en-US";
+    utt.rate    = 0.92;
+    utt.pitch   = 1.0;
+    const voice = pickBestVoice(utt.lang);
+    if (voice) utt.voice = voice;
     window.speechSynthesis.speak(utt);
   }
 
@@ -989,20 +1045,15 @@ router.get("/", (_req, res) => {
     window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
   }
 
-  // Stop speech when restarting
-  const _origRestart = restart;
-  function restart() { stopSpeaking(); stopListening(); exitVoiceMode(true); _origRestart(); }
-
   // ── Voice Mode ────────────────────────────────────────────
-  const voiceModeEl    = document.getElementById("voice-mode");
-  const sphereWrap     = document.getElementById("sphere-wrap");
-  const voiceStatus    = document.getElementById("voice-status");
+  const voiceModeEl     = document.getElementById("voice-mode");
+  const sphereWrap      = document.getElementById("sphere-wrap");
+  const voiceStatus     = document.getElementById("voice-status");
   const voiceTranscript = document.getElementById("voice-transcript");
-  const voiceTapBtn    = document.getElementById("voice-tap");
 
-  let voiceActive = false;
+  let voiceActive   = false;
   let voiceListening = false;
-  let voiceRec = null;
+  let voiceRec      = null;
 
   function setSphereState(state) {
     sphereWrap.dataset.state = state;
@@ -1087,9 +1138,6 @@ router.get("/", (_req, res) => {
     setSphereState("idle");
     voiceTranscript.textContent = text;
 
-    // mirror into chat history too
-    addMessage("user", text);
-
     try {
       const res = await fetch("/chat", {
         method: "POST",
@@ -1101,35 +1149,32 @@ router.get("/", (_req, res) => {
       if (!voiceActive) return;
 
       if (res.ok && data.reply) {
-        addMessage("assistant", data.reply);
         setSphereState("speaking");
         voiceTranscript.textContent = "";
 
-        const clean = data.reply.replace(/[*_#~>]/g, "").replace(/\u0060/g, "").replace(/\\n/g, " ");
-        const utt = new SpeechSynthesisUtterance(clean);
-        utt.lang = LANG_CODES[chosenLanguage] || "en-US";
-        utt.rate = 0.95; utt.pitch = 1.05;
-        const voices = window.speechSynthesis.getVoices();
-        const match = voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]) && !v.name.includes("Google"))
-                   || voices.find(v => v.lang.startsWith(utt.lang.split("-")[0]));
-        if (match) utt.voice = match;
+        const clean = cleanForTTS(data.reply);
+        const utt   = new SpeechSynthesisUtterance(clean);
+        utt.lang    = LANG_CODES[chosenLanguage] || "en-US";
+        utt.rate    = 0.92;
+        utt.pitch   = 1.0;
+        const voice = pickBestVoice(utt.lang);
+        if (voice) utt.voice = voice;
 
         utt.onend = () => {
           if (!voiceActive) return;
           setSphereState("idle");
-          // wait a beat then listen again
           setTimeout(() => { if (voiceActive) voiceStartListen(); }, 700);
         };
 
         window.speechSynthesis.speak(utt);
       } else {
         setSphereState("idle");
-        voiceTranscript.textContent = "Something went wrong — try again.";
-        setTimeout(() => { if (voiceActive) voiceStartListen(); }, 1800);
+        voiceTranscript.textContent = "Something went wrong. Tap to try again.";
+        setTimeout(() => { if (voiceActive) voiceStartListen(); }, 2000);
       }
     } catch(e) {
       setSphereState("idle");
-      voiceTranscript.textContent = "Network error.";
+      voiceTranscript.textContent = "Network error. Tap to retry.";
     }
   }
 </script>
