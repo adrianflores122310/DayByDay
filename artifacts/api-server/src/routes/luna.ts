@@ -942,7 +942,7 @@ router.get("/", (_req, res) => {
   function addMessage(role, text, isError) {
     const div = document.createElement("div");
     div.className = "msg" + (role === "user" ? " user" : "");
-    const safe = escHtml(text).replace(/\n/g, "<br>");
+    const safe = escHtml(text).replace(/\\n/g, "<br>");
     const replayBtn = (role === "assistant" && !isError)
       ? '<button class="replay-btn" title="Replay audio" onclick="replayAudio(this)">🔊</button>'
       : "";
@@ -1081,9 +1081,9 @@ router.get("/", (_req, res) => {
     return noEmoji
       .replace(/[*_#~>]/g, "")
       .replace(/\u0060/g, "")
-      .replace(/\[.*?\]/g, "")
-      .replace(/\n+/g, ". ")
-      .replace(/\s{2,}/g, " ")
+      .replace(/\\[.*?\\]/g, "")
+      .replace(/\\n+/g, ". ")
+      .replace(/\\s{2,}/g, " ")
       .trim();
   }
 
