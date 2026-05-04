@@ -1111,48 +1111,69 @@ router.get("/", (_req, res) => {
   }
 
   let currentReplayBtn = null;
+  let ttsTimer = null;
 
+  // Core speak — always called after a short delay to let Chrome process any prior cancel()
   function _doSpeak(clean, langCode, onEnd, onErr) {
-    const utt  = new SpeechSynthesisUtterance(clean);
-    utt.lang   = langCode;
-    utt.rate   = 0.92;
-    utt.pitch  = 1.0;
-    const voice = pickBestVoice(langCode);
-    if (voice) utt.voice = voice;
-    utt.onend  = () => { if (onEnd) onEnd(); };
-    utt.onerror = (e) => {
-      console.error("[Luna TTS] Speech synthesis error:", e.error);
-      if (onErr) onErr(e.error);
-    };
-    // Chrome bug: if paused/stuck, resume first
-    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-    window.speechSynthesis.speak(utt);
+    const synth = window.speechSynthesis;
+    // Force Chrome out of any stuck/paused state
+    if (synth.paused) synth.resume();
+    synth.cancel(); // clear any leftover queue
+
+    // Chrome REQUIRES a macrotask gap after cancel() before speak() works
+    if (ttsTimer) clearTimeout(ttsTimer);
+    ttsTimer = setTimeout(() => {
+      ttsTimer = null;
+      const utt   = new SpeechSynthesisUtterance(clean);
+      utt.lang    = langCode;
+      utt.rate    = 0.92;
+      utt.pitch   = 1.0;
+      const voice = pickBestVoice(langCode);
+      if (voice) utt.voice = voice;
+      utt.onend  = () => { if (onEnd) onEnd(); };
+      utt.onerror = (e) => {
+        // 'interrupted' means we cancelled it ourselves — not a real error
+        if (e.error === "interrupted" || e.error === "canceled") return;
+        console.error("[Luna TTS] error:", e.error);
+        if (onErr) onErr(e.error);
+      };
+      if (synth.paused) synth.resume();
+      synth.speak(utt);
+
+      // Chrome sometimes queues but never starts — nudge it after 500ms if still not speaking
+      setTimeout(() => {
+        if (synth.pending && !synth.speaking) {
+          synth.resume();
+        }
+      }, 500);
+    }, 120);
   }
 
   function speakReply(text, msgEl) {
     if (!window.speechSynthesis) {
-      console.warn("[Luna TTS] speechSynthesis not available in this browser");
+      console.warn("[Luna TTS] speechSynthesis not supported");
       return;
     }
-    stopSpeaking();
     const clean = cleanForTTS(text);
     if (!clean) return;
 
     const langCode = LANG_CODES[chosenLanguage] || "en-US";
     const btn = msgEl ? msgEl.querySelector(".replay-btn") : null;
-    if (btn) { btn.classList.add("playing"); currentReplayBtn = btn; }
 
-    const onEnd = () => { if (btn) btn.classList.remove("playing"); currentReplayBtn = null; };
-    const onErr = () => { if (btn) btn.classList.remove("playing"); currentReplayBtn = null; };
+    // Clear previous playing state
+    if (currentReplayBtn) currentReplayBtn.classList.remove("playing");
+    currentReplayBtn = btn;
+    if (btn) btn.classList.add("playing");
+
+    const onEnd = () => { if (btn) btn.classList.remove("playing"); if (currentReplayBtn === btn) currentReplayBtn = null; };
+    const onErr = () => { if (btn) btn.classList.remove("playing"); if (currentReplayBtn === btn) currentReplayBtn = null; };
 
     const voices = window.speechSynthesis.getVoices();
     if (voices && voices.length > 0) {
       _doSpeak(clean, langCode, onEnd, onErr);
     } else {
-      // Wait for Chrome to load voices asynchronously
-      const prev = window.speechSynthesis.onvoiceschanged;
+      // Chrome loads voices asynchronously on first load
       window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = prev || null;
         _doSpeak(clean, langCode, onEnd, onErr);
       };
     }
@@ -1166,21 +1187,15 @@ router.get("/", (_req, res) => {
 
   function stopSpeaking() {
     if (!window.speechSynthesis) return;
+    if (ttsTimer) { clearTimeout(ttsTimer); ttsTimer = null; }
     try { window.speechSynthesis.cancel(); } catch(e) {}
     if (currentReplayBtn) { currentReplayBtn.classList.remove("playing"); currentReplayBtn = null; }
   }
 
-  // Ensure voices load (Chrome loads them async)
+  // Ensure voices are loaded (Chrome loads them async on first call)
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
     window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-    // Chrome keepalive: prevent the synth from going silent after page idle
-    setInterval(() => {
-      if (window.speechSynthesis && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
-      }
-    }, 14000);
   }
 
   // ── Voice Mode ────────────────────────────────────────────
