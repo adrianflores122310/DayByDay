@@ -688,6 +688,17 @@ router.get("/", (_req, res) => {
       transition: all 0.15s; font-family: inherit;
     }
     .voice-mode-btn:hover { background: rgba(245,166,35,0.18); border-color: rgba(245,166,35,0.5); }
+
+    .replay-btn {
+      display: inline-flex; align-items: center;
+      background: transparent; border: none; cursor: pointer;
+      font-size: 14px; padding: 2px 6px 0; margin-left: 6px;
+      opacity: 0.45; border-radius: 6px;
+      transition: opacity 0.2s, background 0.2s;
+      vertical-align: middle; line-height: 1;
+    }
+    .replay-btn:hover { opacity: 1; background: rgba(255,255,255,0.07); }
+    .replay-btn.playing { opacity: 1; color: #f5a623; }
   </style>
 </head>
 <body>
@@ -920,15 +931,29 @@ router.get("/", (_req, res) => {
 
   function scrollToBottom() { chat.scrollTop = chat.scrollHeight; }
 
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   function addMessage(role, text, isError) {
     const div = document.createElement("div");
     div.className = "msg" + (role === "user" ? " user" : "");
+    const safe = escHtml(text).replace(/\n/g, "<br>");
+    const replayBtn = (role === "assistant" && !isError)
+      ? '<button class="replay-btn" title="Replay audio" onclick="replayAudio(this)">🔊</button>'
+      : "";
     div.innerHTML =
-      '<div class="avatar">' + (role === "user" ? "👤" : chosenFlag || "🌍") + "</div>" +
+      '<div class="avatar">' + (role === "user" ? "👤" : escHtml(chosenFlag || "🌍")) + "</div>" +
       '<div class="bubble' + (isError ? " error-bubble" : "") + '">' +
-      text.replace(/\\n/g, "<br>") + "</div>";
+      safe + replayBtn + "</div>";
+    if (role === "assistant" && !isError) div.dataset.rawText = text;
     chat.appendChild(div);
     scrollToBottom();
+    return div;
   }
 
   function showTyping() {
@@ -954,6 +979,7 @@ router.get("/", (_req, res) => {
     showTyping();
 
     try {
+      console.log("[Luna] Sending message to /chat:", text.slice(0, 60));
       const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -962,14 +988,17 @@ router.get("/", (_req, res) => {
       const data = await res.json();
       hideTyping();
       if (!res.ok) {
+        console.error("[Luna] Chat API error:", data.error);
         addMessage("assistant", "⚠️ " + (data.error || "Something went wrong."), true);
       } else {
-        addMessage("assistant", data.reply);
-        speakReply(data.reply);
+        console.log("[Luna] Reply received:", data.reply?.slice(0, 60));
+        const msgEl = addMessage("assistant", data.reply);
+        speakReply(data.reply, msgEl);
       }
     } catch (err) {
+      console.error("[Luna] Network error:", err);
       hideTyping();
-      addMessage("assistant", "⚠️ Network error — is the server running?", true);
+      addMessage("assistant", "⚠️ Network error — please check your connection.", true);
     }
 
     sendBtn.disabled = false;
@@ -1041,31 +1070,29 @@ router.get("/", (_req, res) => {
 
   // Strip everything that sounds unnatural when spoken aloud
   function cleanForTTS(text) {
-    // Remove emoji via surrogate pair detection (avoids unicode escape issues in template literals)
     let noEmoji = "";
     for (let i = 0; i < text.length; i++) {
       const c = text.charCodeAt(i);
-      if (c >= 0xD800 && c <= 0xDFFF) { i++; continue; } // surrogate pair → skip both halves
-      if (c >= 0x2600 && c <= 0x27FF) continue;          // misc symbols & arrows
-      if (c >= 0xFE00 && c <= 0xFEFF) continue;          // variation selectors / BOM
+      if (c >= 0xD800 && c <= 0xDFFF) { i++; continue; }
+      if (c >= 0x2600 && c <= 0x27FF) continue;
+      if (c >= 0xFE00 && c <= 0xFEFF) continue;
       noEmoji += text[i];
     }
     return noEmoji
       .replace(/[*_#~>]/g, "")
       .replace(/\u0060/g, "")
-      .replace(/\\[.*?\\]/g, "")
-      .replace(/\\n+/g, ". ")
-      .replace(/\\s{2,}/g, " ")
+      .replace(/\[.*?\]/g, "")
+      .replace(/\n+/g, ". ")
+      .replace(/\s{2,}/g, " ")
       .trim();
   }
 
   // Rank and pick the best available voice for a language code
   function pickBestVoice(langCode) {
     const voices = window.speechSynthesis.getVoices();
-    const lang   = langCode.toLowerCase();
-    const base   = lang.split("-")[0];
-
-    // Priority tiers: Google → Microsoft → enhanced/premium → any exact match → family match
+    if (!voices || voices.length === 0) return null;
+    const lang = langCode.toLowerCase();
+    const base = lang.split("-")[0];
     const tiers = [
       v => v.lang.toLowerCase() === lang && /google/i.test(v.name),
       v => v.lang.toLowerCase().startsWith(base) && /google/i.test(v.name),
@@ -1076,7 +1103,6 @@ router.get("/", (_req, res) => {
       v => v.lang.toLowerCase() === lang,
       v => v.lang.toLowerCase().startsWith(base),
     ];
-
     for (const test of tiers) {
       const match = voices.find(test);
       if (match) return match;
@@ -1084,27 +1110,77 @@ router.get("/", (_req, res) => {
     return null;
   }
 
-  function speakReply(text) {
-    if (!window.speechSynthesis) return;
-    stopSpeaking();
-    const clean = cleanForTTS(text);
-    const utt   = new SpeechSynthesisUtterance(clean);
-    utt.lang    = LANG_CODES[chosenLanguage] || "en-US";
-    utt.rate    = 0.92;
-    utt.pitch   = 1.0;
-    const voice = pickBestVoice(utt.lang);
+  let currentReplayBtn = null;
+
+  function _doSpeak(clean, langCode, onEnd, onErr) {
+    const utt  = new SpeechSynthesisUtterance(clean);
+    utt.lang   = langCode;
+    utt.rate   = 0.92;
+    utt.pitch  = 1.0;
+    const voice = pickBestVoice(langCode);
     if (voice) utt.voice = voice;
+    utt.onend  = () => { if (onEnd) onEnd(); };
+    utt.onerror = (e) => {
+      console.error("[Luna TTS] Speech synthesis error:", e.error);
+      if (onErr) onErr(e.error);
+    };
+    // Chrome bug: if paused/stuck, resume first
+    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
     window.speechSynthesis.speak(utt);
   }
 
+  function speakReply(text, msgEl) {
+    if (!window.speechSynthesis) {
+      console.warn("[Luna TTS] speechSynthesis not available in this browser");
+      return;
+    }
+    stopSpeaking();
+    const clean = cleanForTTS(text);
+    if (!clean) return;
+
+    const langCode = LANG_CODES[chosenLanguage] || "en-US";
+    const btn = msgEl ? msgEl.querySelector(".replay-btn") : null;
+    if (btn) { btn.classList.add("playing"); currentReplayBtn = btn; }
+
+    const onEnd = () => { if (btn) btn.classList.remove("playing"); currentReplayBtn = null; };
+    const onErr = () => { if (btn) btn.classList.remove("playing"); currentReplayBtn = null; };
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+      _doSpeak(clean, langCode, onEnd, onErr);
+    } else {
+      // Wait for Chrome to load voices asynchronously
+      const prev = window.speechSynthesis.onvoiceschanged;
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = prev || null;
+        _doSpeak(clean, langCode, onEnd, onErr);
+      };
+    }
+  }
+
+  function replayAudio(btn) {
+    const msgEl = btn.closest(".msg");
+    if (!msgEl || !msgEl.dataset.rawText) return;
+    speakReply(msgEl.dataset.rawText, msgEl);
+  }
+
   function stopSpeaking() {
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (!window.speechSynthesis) return;
+    try { window.speechSynthesis.cancel(); } catch(e) {}
+    if (currentReplayBtn) { currentReplayBtn.classList.remove("playing"); currentReplayBtn = null; }
   }
 
   // Ensure voices load (Chrome loads them async)
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
     window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    // Chrome keepalive: prevent the synth from going silent after page idle
+    setInterval(() => {
+      if (window.speechSynthesis && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 14000);
   }
 
   // ── Voice Mode ────────────────────────────────────────────
@@ -1240,6 +1316,7 @@ router.get("/", (_req, res) => {
     setSphereState("idle");
 
     try {
+      console.log("[Luna Voice] Sending to /chat:", text.slice(0, 60));
       const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1250,30 +1327,43 @@ router.get("/", (_req, res) => {
       if (!voiceActive) return;
 
       if (res.ok && data.reply) {
+        console.log("[Luna Voice] Reply:", data.reply.slice(0, 60));
         setSphereState("speaking");
         showSubtitle(data.reply, "assistant");
 
-        const clean = cleanForTTS(data.reply);
-        const utt   = new SpeechSynthesisUtterance(clean);
-        utt.lang    = LANG_CODES[chosenLanguage] || "en-US";
-        utt.rate    = 0.92;
-        utt.pitch   = 1.0;
-        const voice = pickBestVoice(utt.lang);
-        if (voice) utt.voice = voice;
+        const clean   = cleanForTTS(data.reply);
+        const langCode = LANG_CODES[chosenLanguage] || "en-US";
 
-        utt.onend = () => {
+        const onEnd = () => {
           if (!voiceActive) return;
           setSphereState("idle");
           setTimeout(() => { if (voiceActive) voiceStartListen(); }, 700);
         };
+        const onErr = (errCode) => {
+          console.error("[Luna Voice TTS] Error:", errCode);
+          if (!voiceActive) return;
+          setSphereState("idle");
+          setTimeout(() => { if (voiceActive) voiceStartListen(); }, 2000);
+        };
 
-        window.speechSynthesis.speak(utt);
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+          _doSpeak(clean, langCode, onEnd, onErr);
+        } else {
+          window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.onvoiceschanged = null;
+            _doSpeak(clean, langCode, onEnd, onErr);
+          };
+        }
       } else {
+        console.error("[Luna Voice] API error:", data.error);
         setSphereState("idle");
         setTimeout(() => { if (voiceActive) voiceStartListen(); }, 2000);
       }
-    } catch(e) {
+    } catch(err) {
+      console.error("[Luna Voice] Network error:", err);
       setSphereState("idle");
+      setTimeout(() => { if (voiceActive) voiceStartListen(); }, 2000);
     }
   }
 </script>
