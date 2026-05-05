@@ -1,0 +1,70 @@
+Extend the current application by adding a new feature called “Learning Listening Mode”.
+
+⚠️ Important:
+
+Do NOT modify or break any existing features
+Do NOT change current chat or voice functionalities
+Keep all existing sections exactly as they are working now
+Only ADD new functionality in a separate, clean way
+🎧 New Feature: Learning Listening Mode
+
+Add a new section where users can:
+
+Paste or upload text
+Convert it into natural, human-like speech
+Listen to the content in a structured, learning-focused way
+🧠 Behavior
+Break text into short, natural sentences
+Convert written text into conversational speech
+Maintain meaning but improve clarity if needed
+Play audio sentence-by-sentence
+Add pauses between sentences
+🎯 Focus Mode (core feature)
+
+Add a “Focus Mode” where:
+
+Each sentence is played individually
+The next sentence only plays after user interaction
+Include a repeat button per sentence
+This mode is designed for active learning
+🌍 Optional Translation Layer
+Show original sentence
+Show translated sentence below
+Keep translation natural, not literal
+🎨 UI / UX Structure (VERY IMPORTANT)
+
+Clearly separate and design 3 different modes:
+
+Chat Mode (1:1 conversation)
+Standard messaging UI
+Back-and-forth interaction
+Voice Mode
+Real-time speaking + listening
+Minimal UI, more dynamic
+Focus Listening Mode (NEW)
+Clean, distraction-free interface
+Sentence-by-sentence display
+Large readable text
+Playback controls (play, pause, repeat)
+
+👉 Each mode must feel visually distinct:
+
+Different layout or section
+Clear navigation between modes (tabs or buttons)
+🎧 Audio Requirements
+Use natural, human-like voice
+Avoid robotic tone
+Smooth pacing and slight pauses
+🛡️ Stability Requirements
+If audio fails → still show text
+Do not block user experience
+Add basic error handling for API/audio
+🎯 Goal
+
+Create an immersive learning experience where users can:
+
+Learn by listening
+Stay focused
+Interact with content naturally
+
+The new feature should feel like a premium learning tool, without affecting the current working system.

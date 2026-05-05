@@ -699,6 +699,158 @@ router.get("/", (_req, res) => {
     }
     .replay-btn:hover { opacity: 1; background: rgba(255,255,255,0.07); }
     .replay-btn.playing { opacity: 1; color: #f5a623; }
+
+    /* ── Mode Tab Bar ── */
+    #mode-tabs {
+      width: 100%; max-width: 700px;
+      display: flex; gap: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+      padding: 0 20px;
+    }
+    .tab-btn {
+      background: transparent; border: none;
+      color: #454e66; font-size: 13px; font-weight: 600;
+      padding: 10px 18px; cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.18s, border-color 0.18s;
+      font-family: inherit; letter-spacing: 0.01em;
+    }
+    .tab-btn:hover { color: #8b95aa; }
+    .tab-btn.active { color: #f5a623; border-bottom-color: #f5a623; }
+
+    /* ── Listening Mode Panel ── */
+    #listen-panel {
+      flex: 1; width: 100%; max-width: 700px;
+      display: flex; flex-direction: column;
+      align-items: center; overflow-y: auto;
+      padding: 28px 20px 24px;
+    }
+    #listen-panel.gone { display: none; }
+
+    /* Input step */
+    #listen-input-step {
+      width: 100%; max-width: 540px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    #listen-input-step.gone { display: none; }
+    .listen-intro {
+      text-align: center; margin-bottom: 4px;
+    }
+    .listen-intro-icon { font-size: 38px; margin-bottom: 10px; }
+    .listen-intro-title {
+      font-size: 18px; font-weight: 700; color: #f0f2f8; margin-bottom: 6px;
+    }
+    .listen-intro-sub { font-size: 13px; color: #454e66; line-height: 1.55; }
+    #listen-text {
+      width: 100%; min-height: 140px;
+      background: #151822; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 14px 16px;
+      color: #e8eaf0; font-size: 14px; font-family: inherit;
+      line-height: 1.6; resize: vertical; outline: none;
+      transition: border-color 0.2s;
+    }
+    #listen-text:focus { border-color: rgba(245,166,35,0.5); }
+    #listen-text::placeholder { color: #2d3448; }
+    .listen-opts {
+      display: flex; gap: 16px; flex-wrap: wrap; padding: 2px 0;
+    }
+    .listen-opt-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #555f72; cursor: pointer;
+      user-select: none;
+    }
+    .listen-opt-label input[type=checkbox] {
+      accent-color: #f5a623; width: 15px; height: 15px; cursor: pointer;
+    }
+    .listen-load-btn {
+      background: #f5a623; color: #1a0e00;
+      border: none; border-radius: 12px;
+      padding: 14px 24px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s, transform 0.1s;
+      align-self: center; width: 100%;
+    }
+    .listen-load-btn:hover { background: #e8941a; }
+    .listen-load-btn:active { transform: scale(0.98); }
+    .listen-load-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Player step */
+    #listen-player-step {
+      width: 100%; max-width: 540px;
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+    }
+    #listen-player-step.gone { display: none; }
+    #listen-counter {
+      font-size: 12px; color: #3d4456; letter-spacing: 0.08em;
+      text-transform: uppercase; font-weight: 600; margin-bottom: 28px;
+    }
+    #listen-sentence {
+      font-size: 22px; font-weight: 500; line-height: 1.55;
+      color: #f0f2f8; text-align: center;
+      min-height: 80px; margin-bottom: 14px;
+      transition: opacity 0.25s;
+      padding: 0 8px;
+    }
+    #listen-sentence.fading { opacity: 0; }
+    #listen-translation {
+      font-size: 14px; color: #555f72; text-align: center;
+      font-style: italic; line-height: 1.5; margin-bottom: 28px;
+      min-height: 22px; transition: opacity 0.25s;
+    }
+    #listen-translation.gone { display: none; }
+    #listen-progress-wrap {
+      width: 100%; background: rgba(255,255,255,0.05);
+      border-radius: 99px; height: 3px; margin-bottom: 32px; overflow: hidden;
+    }
+    #listen-progress-fill {
+      height: 100%; background: #f5a623;
+      border-radius: 99px; width: 0%;
+      transition: width 0.4s ease;
+    }
+    #listen-controls {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .lc-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      color: #8b95aa; border-radius: 50%;
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+    }
+    .lc-btn:hover { background: rgba(255,255,255,0.08); color: #e8eaf0; }
+    .lc-btn:active { transform: scale(0.92); }
+    .lc-btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
+    #lc-play {
+      width: 60px; height: 60px; font-size: 22px;
+      background: #f5a623; border-color: #f5a623; color: #1a0e00;
+    }
+    #lc-play:hover { background: #e8941a; border-color: #e8941a; color: #1a0e00; }
+    #listen-focus-hint {
+      font-size: 12px; color: #3d4456; text-align: center;
+      min-height: 18px; margin-bottom: 12px; transition: color 0.3s;
+    }
+    #listen-focus-hint.done { color: #4ade80; }
+    #listen-mode-toggle {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #3d4456; cursor: pointer;
+      user-select: none; margin-bottom: 28px;
+      padding: 6px 12px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: border-color 0.18s, color 0.18s;
+    }
+    #listen-mode-toggle:hover { border-color: rgba(255,255,255,0.15); color: #555f72; }
+    #listen-mode-toggle input { accent-color: #f5a623; cursor: pointer; }
+    .listen-back-btn {
+      background: transparent; border: 1px solid rgba(255,255,255,0.08);
+      color: #3d4456; border-radius: 8px; padding: 7px 16px;
+      font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .listen-back-btn:hover { border-color: #454e66; color: #7a8499; }
   </style>
 </head>
 <body>
@@ -783,12 +935,63 @@ router.get("/", (_req, res) => {
       <button class="clear-btn" onclick="restart()">&#8634; New chat</button>
     </div>
   </header>
+
+  <!-- Mode Tab Bar -->
+  <nav id="mode-tabs">
+    <button class="tab-btn active" id="tab-chat" onclick="switchTab('chat')">&#128172; Chat</button>
+    <button class="tab-btn" id="tab-listen" onclick="switchTab('listen')">&#127911; Listening</button>
+  </nav>
+
   <div id="chat"></div>
+
+  <!-- Focus Listening Mode Panel -->
+  <div id="listen-panel" class="gone">
+
+    <!-- Step 1: Input -->
+    <div id="listen-input-step">
+      <div class="listen-intro">
+        <div class="listen-intro-icon">&#127911;</div>
+        <div class="listen-intro-title">Focus Listening Mode</div>
+        <div class="listen-intro-sub">Paste any text to practice listening sentence by sentence.<br>Each sentence plays individually so you can focus and repeat.</div>
+      </div>
+      <textarea id="listen-text" placeholder="Paste the text you want to practice listening to..."></textarea>
+      <div class="listen-opts">
+        <label class="listen-opt-label">
+          <input type="checkbox" id="listen-translate-chk"> Show translation
+        </label>
+        <label class="listen-opt-label">
+          <input type="checkbox" id="listen-focus-chk" checked> Focus mode (tap to advance)
+        </label>
+      </div>
+      <button class="listen-load-btn" onclick="llmLoad()">&#127911; Load &amp; Listen</button>
+    </div>
+
+    <!-- Step 2: Player -->
+    <div id="listen-player-step" class="gone">
+      <div id="listen-counter">1 / 1</div>
+      <div id="listen-sentence"></div>
+      <div id="listen-translation" class="gone"></div>
+      <div id="listen-progress-wrap"><div id="listen-progress-fill"></div></div>
+      <div id="listen-controls">
+        <button class="lc-btn" id="lc-prev" onclick="llmPrev()" title="Previous">&#9198;</button>
+        <button class="lc-btn" id="lc-play" onclick="llmPlayPause()" title="Play / Pause">&#9654;</button>
+        <button class="lc-btn" id="lc-repeat" onclick="llmRepeat()" title="Repeat">&#128257;</button>
+        <button class="lc-btn" id="lc-next" onclick="llmNext()" title="Next">&#9197;</button>
+      </div>
+      <div id="listen-focus-hint"></div>
+      <label id="listen-mode-toggle">
+        <input type="checkbox" id="listen-focus-live" checked onchange="llmToggleFocus(this.checked)"> Focus mode — tap &#9197; to advance
+      </label>
+      <button class="listen-back-btn" onclick="llmBack()">&#8592; Load new text</button>
+    </div>
+
+  </div>
+
   <footer>
     <div class="input-row">
       <textarea id="input" rows="1" placeholder="Type your message..."
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-      <button id="mic" onclick="toggleMic()" title="Hold to speak">🎙</button>
+      <button id="mic" onclick="toggleMic()" title="Hold to speak">&#127897;</button>
       <button id="send" onclick="sendMessage()">Send</button>
     </div>
     <div class="hint" id="hint">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</div>
@@ -895,6 +1098,9 @@ router.get("/", (_req, res) => {
     // Stop all active audio/listening first
     stopSpeaking();
     stopListening();
+    // Reset listening mode
+    llmBack();
+    switchTab("chat");
     // Exit voice mode without triggering another restart
     voiceActive = false;
     try { if (voiceRec) voiceRec.stop(); } catch(e) {}
@@ -1324,6 +1530,187 @@ router.get("/", (_req, res) => {
   function voiceStopListen() {
     voiceListening = false;
     try { if (voiceRec) voiceRec.stop(); } catch(e) {}
+  }
+
+  // ── Tab Switching ────────────────────────────────────────
+  const listenPanelEl   = document.getElementById("listen-panel");
+  const chatEl2         = document.getElementById("chat");
+  const footerEl        = document.querySelector("footer");
+  const tabChatBtn      = document.getElementById("tab-chat");
+  const tabListenBtn    = document.getElementById("tab-listen");
+  let currentTab        = "chat";
+
+  function switchTab(tab) {
+    currentTab = tab;
+    if (tab === "chat") {
+      tabChatBtn.classList.add("active");
+      tabListenBtn.classList.remove("active");
+      chatEl2.style.display = "";
+      footerEl.style.display = "";
+      listenPanelEl.classList.add("gone");
+      stopSpeaking();
+    } else {
+      tabListenBtn.classList.add("active");
+      tabChatBtn.classList.remove("active");
+      chatEl2.style.display = "none";
+      footerEl.style.display = "none";
+      listenPanelEl.classList.remove("gone");
+      stopSpeaking();
+    }
+  }
+
+  // ── Focus Listening Mode ─────────────────────────────────
+  let llmSentences    = [];
+  let llmCurrent      = 0;
+  let llmPlaying      = false;
+  let llmFocusMode    = true;
+  let llmShowTrans    = false;
+  let llmTransCache   = {};
+
+  const llmCounterEl  = document.getElementById("listen-counter");
+  const llmSentEl     = document.getElementById("listen-sentence");
+  const llmTransEl    = document.getElementById("listen-translation");
+  const llmFillEl     = document.getElementById("listen-progress-fill");
+  const llmHintEl     = document.getElementById("listen-focus-hint");
+  const llmPlayBtn    = document.getElementById("lc-play");
+  const llmPrevBtn    = document.getElementById("lc-prev");
+  const llmNextBtn    = document.getElementById("lc-next");
+
+  function llmParseSentences(text) {
+    const clean = text.trim().replace(/[\\r\\n]+/g, " ").replace(/\\s+/g, " ");
+    const parts = clean.match(/[^.!?\\u3002\\uff01\\uff1f]+[.!?\\u3002\\uff01\\uff1f]+/g) || [clean];
+    return parts.map(s => s.trim()).filter(s => s.length > 3);
+  }
+
+  function llmLoad() {
+    const raw = document.getElementById("listen-text").value.trim();
+    if (!raw) { document.getElementById("listen-text").focus(); return; }
+    llmSentences  = llmParseSentences(raw);
+    if (llmSentences.length === 0) return;
+    llmCurrent    = 0;
+    llmPlaying    = false;
+    llmFocusMode  = document.getElementById("listen-focus-chk").checked;
+    llmShowTrans  = document.getElementById("listen-translate-chk").checked;
+    llmTransCache = {};
+    document.getElementById("listen-focus-live").checked = llmFocusMode;
+    document.getElementById("listen-input-step").classList.add("gone");
+    document.getElementById("listen-player-step").classList.remove("gone");
+    llmRender();
+    llmPlayCurrent();
+  }
+
+  function llmRender() {
+    const total = llmSentences.length;
+    const i     = llmCurrent;
+    llmCounterEl.textContent = (i + 1) + " / " + total;
+    llmFillEl.style.width = Math.round(((i + 1) / total) * 100) + "%";
+    llmSentEl.textContent = llmSentences[i] || "";
+    llmPrevBtn.disabled = (i === 0);
+    llmNextBtn.disabled = (i >= total - 1);
+
+    // Translation
+    if (llmShowTrans) {
+      llmTransEl.classList.remove("gone");
+      if (llmTransCache[i]) {
+        llmTransEl.textContent = llmTransCache[i];
+      } else {
+        llmTransEl.textContent = "...";
+        const toLang = { English: "Spanish", Spanish: "English", Portuguese: "English" }[chosenLanguage] || "English";
+        fetch("/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: llmSentences[i], from: chosenLanguage, to: toLang }),
+        })
+          .then(r => r.json())
+          .then(d => {
+            llmTransCache[i] = d.translation || "";
+            if (llmCurrent === i && llmTransEl.isConnected) llmTransEl.textContent = llmTransCache[i];
+          })
+          .catch(() => { if (llmCurrent === i) llmTransEl.textContent = ""; });
+      }
+    } else {
+      llmTransEl.classList.add("gone");
+    }
+
+    // Focus mode hint
+    if (i >= llmSentences.length - 1 && !llmPlaying) {
+      llmHintEl.textContent = "All done! Well done.";
+      llmHintEl.classList.add("done");
+    } else if (llmFocusMode) {
+      llmHintEl.textContent = "Tap next after listening";
+      llmHintEl.classList.remove("done");
+    } else {
+      llmHintEl.textContent = "Auto-advancing...";
+      llmHintEl.classList.remove("done");
+    }
+  }
+
+  function llmSetPlaying(val) {
+    llmPlaying = val;
+    llmPlayBtn.innerHTML = val ? "&#9646;&#9646;" : "&#9654;";
+  }
+
+  function llmPlayCurrent() {
+    if (!llmSentences.length) return;
+    llmSetPlaying(true);
+    const langCode = LANG_CODES[chosenLanguage] || "en-US";
+    const sentence = llmSentences[llmCurrent];
+
+    const onEnd = () => {
+      llmSetPlaying(false);
+      if (!llmFocusMode && llmCurrent < llmSentences.length - 1) {
+        setTimeout(() => { llmCurrent++; llmRender(); llmPlayCurrent(); }, 900);
+      } else {
+        llmRender(); // update hint
+      }
+    };
+    const onErr = () => { llmSetPlaying(false); llmRender(); };
+
+    _doSpeak(sentence, langCode, onEnd, onErr);
+  }
+
+  function llmPlayPause() {
+    if (llmPlaying) {
+      stopSpeaking();
+      llmSetPlaying(false);
+    } else {
+      llmPlayCurrent();
+    }
+  }
+
+  function llmPrev() {
+    if (llmCurrent <= 0) return;
+    stopSpeaking();
+    llmCurrent--;
+    llmRender();
+    llmPlayCurrent();
+  }
+
+  function llmNext() {
+    if (llmCurrent >= llmSentences.length - 1) return;
+    stopSpeaking();
+    llmCurrent++;
+    llmRender();
+    llmPlayCurrent();
+  }
+
+  function llmRepeat() {
+    stopSpeaking();
+    llmPlayCurrent();
+  }
+
+  function llmToggleFocus(val) {
+    llmFocusMode = val;
+    llmRender();
+  }
+
+  function llmBack() {
+    stopSpeaking();
+    llmSetPlaying(false);
+    llmSentences = [];
+    llmCurrent   = 0;
+    document.getElementById("listen-player-step").classList.add("gone");
+    document.getElementById("listen-input-step").classList.remove("gone");
   }
 
   async function voiceSend(text) {
