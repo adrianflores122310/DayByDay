@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actualización de Actividades 2026</title>
+  <style>
+    :root{
+      --bg:#0b0b0c;
+      --panel:#121214;
+      --panel-2:#18181b;
+      --text:#f4f4f5;
+      --muted:#a1a1aa;
+      --line:#27272a;
+      --accent:#e7ff6b;
+      --accent-2:#d8ff39;
+      --danger:#ff7a7a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(231,255,107,.08), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(255,255,255,.03), transparent 28%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{
+      width:min(980px, 92%);
+      margin:0 auto;
+      padding:48px 0 72px;
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin-bottom:42px;
+    }
+    .brand{
+      font-weight:800;
+      letter-spacing:.08em;
+      font-size:13px;
+      text-transform:uppercase;
+    }
+    .badge{
+      border:1px solid var(--line);
+      color:var(--muted);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      background:rgba(255,255,255,.02);
+    }
+    .hero{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:24px;
+      align-items:end;
+      margin-bottom:28px;
+    }
+    h1{
+      font-size:clamp(36px, 6vw, 72px);
+      line-height:.95;
+      margin:0 0 18px;
+      letter-spacing:-.05em;
+    }
+    .lead{
+      max-width:680px;
+      color:var(--muted);
+      font-size:17px;
+      line-height:1.6;
+      margin:0;
+    }
+    .why{
+      background:linear-gradient(180deg, rgba(231,255,107,.08), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:20px;
+    }
+    .why strong{
+      color:var(--accent);
+      display:block;
+      margin-bottom:8px;
+    }
+    .why p{
+      margin:0;
+      color:#d4d4d8;
+      line-height:1.55;
+      font-size:14px;
+    }
+    .progress-shell{
+      margin:24px 0 32px;
+    }
+    .progress-meta{
+      display:flex;
+      justify-content:space-between;
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:8px;
+    }
+    .progress{
+      height:8px;
+      background:#1f1f22;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid #242428;
+    }
+    .progress > div{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition:width .25s ease;
+    }
+    form{
+      display:grid;
+      gap:18px;
+    }
+    .card{
+      border:1px solid var(--line);
+      background:rgba(18,18,20,.92);
+      border-radius:22px;
+      padding:24px;
+      transition:.2s ease;
+    }
+    .card:hover{border-color:#3a3a40}
+    .qnum{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:var(--accent);
+      font-weight:800;
+      margin-bottom:8px;
+    }
+    .question{
+      font-size:20px;
+      line-height:1.35;
+      margin:0 0 16px;
+      letter-spacing:-.02em;
+    }
+    .sub{
+      margin:-8px 0 16px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .options{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+    }
+    label.option{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      border:1px solid var(--line);
+      background:#151518;
+      padding:13px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      color:#e4e4e7;
+      transition:.15s ease;
+      min-height:52px;
+    }
+    label.option:hover{border-color:#44444a}
+    label.option:has(input:checked){
+      border-color:var(--accent);
+      background:rgba(231,255,107,.07);
+    }
+    input[type="radio"], input[type="checkbox"]{
+      accent-color:var(--accent-2);
+      margin-top:2px;
+      flex:0 0 auto;
+    }
+    input[type="text"]{
+      width:100%;
+      margin-top:12px;
+      border:1px solid var(--line);
+      background:#0f0f11;
+      color:var(--text);
+      border-radius:12px;
+      padding:14px 15px;
+      font:inherit;
+      outline:none;
+    }
+    input[type="text"]:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(231,255,107,.08);
+    }
+    .hidden{display:none}
+    .actions{
+      display:flex;
+      gap:12px;
+      justify-content:flex-end;
+      margin-top:6px;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:14px 18px;
+      font:inherit;
+      font-weight:750;
+      cursor:pointer;
+    }
+    .primary{
+      background:var(--accent);
+      color:#111;
+    }
+    .secondary{
+      background:#1b1b1e;
+      color:#fff;
+      border:1px solid var(--line);
+    }
+    .result{
+      margin-top:28px;
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:24px;
+      background:#111113;
+      display:none;
+    }
+    .result h2{
+      margin:0 0 6px;
+      font-size:28px;
+      letter-spacing:-.03em;
+    }
+    .result .note{
+      color:var(--muted);
+      margin-bottom:18px;
+      line-height:1.5;
+    }
+    .summary{
+      white-space:pre-wrap;
+      background:#0c0c0e;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px;
+      line-height:1.55;
+      font-size:14px;
+      color:#e4e4e7;
+    }
+    .footer{
+      margin-top:34px;
+      padding-top:18px;
+      border-top:1px solid var(--line);
+      color:#71717a;
+      font-size:12px;
+      line-height:1.6;
+    }
+    .error{
+      color:var(--danger);
+      font-size:13px;
+      margin-top:12px;
+      display:none;
+    }
+    @media (max-width:760px){
+      .hero{grid-template-columns:1fr}
+      .options{grid-template-columns:1fr}
+      .wrap{padding-top:28px}
+      .topbar{margin-bottom:28px}
+      .card{padding:19px}
+      .question{font-size:18px}
+      .actions{flex-direction:column}
+      button{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar">
+      <div class="brand">Diagnóstico Fiscal</div>
+      <div class="badge">Actualización de actividades · 2026</div>
+    </div>
+
+    <section class="hero">
+      <div>
+        <h1>Entender primero.<br>Configurar después.</h1>
+        <p class="lead">
+          Este cuestionario nos permite identificar cómo se generan realmente tus ingresos
+          para actualizar correctamente tus actividades fiscales, obligaciones y tratamiento contable.
+        </p>
+      </div>
+
+      <div class="why">
+        <strong>¿Por qué te preguntamos esto?</strong>
+        <p>
+          Construcción, trading con capital propio y cuentas fondeadas no necesariamente se tratan igual.
+          Antes de hacer cambios ante el SAT, necesitamos entender cómo operas en la práctica.
+        </p>
+      </div>
+    </section>
+
+    <div class="progress-shell">
+      <div class="progress-meta">
+        <span id="progressText">0 de 10 respondidas</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress"><div id="progressBar"></div></div>
+    </div>
+
+    <form id="taxForm">
+      <section class="card">
+        <div class="qnum">Identificación</div>
+        <h3 class="question">Nombre completo</h3>
+        <p class="sub">Para identificar correctamente tu diagnóstico.</p>
+        <input type="text" name="client_name" placeholder="Nombre completo" required>
+      </section>
+
+      <section class="card" data-q="1">
+        <div class="qnum">Pregunta 01</div>
+        <h3 class="question">¿A qué te dedicas actualmente?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q1" value="Construcción"> Construcción</label>
+          <label class="option"><input type="radio" name="q1" value="Trading"> Trading</label>
+          <label class="option"><input type="radio" name="q1" value="Ambas"> Ambas</label>
+          <label class="option"><input type="radio" name="q1" value="Otra actividad"> Otra actividad</label>
+        </div>
+      </section>
+
+      <section class="card" data-q="2">
+        <div class="qnum">Pregunta 02</div>
+        <h3 class="question">¿Sigues realizando venta de teléfonos, accesorios o equipos de comunicación?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q2" value="Sí, frecuentemente"> Sí, frecuentemente</label>
+          <label class="option"><input type="radio" name="q2" value="Sí, ocasionalmente"> Sí, ocasionalmente</label>
+          <label class="option"><input type="radio" name="q2" value="Ya no"> Ya no</label>
+          <label class="option"><input type="radio" name="q2" value="Nunca fue una actividad real"> Nunca fue una actividad real</label>
+        </div>
+      </section>
+
+      <section class="card construction" data-q="3">
+        <div class="qnum">Pregunta 03 · Construcción</div>
+        <h3 class="question">¿Qué tipo de trabajos realizas principalmente?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q3" value="Construcción completa"> Construcción completa</label>
+          <label class="option"><input type="radio" name="q3" value="Remodelaciones"> Remodelaciones</label>
+          <label class="option"><input type="radio" name="q3" value="Mano de obra / albañilería"> Mano de obra / albañilería</label>
+          <label class="option"><input type="radio" name="q3" value="Instalaciones o acabados"> Instalaciones o acabados</label>
+          <label class="option"><input type="radio" name="q3" value="Supervisión / administración de obra"> Supervisión / administración de obra</label>
+          <label class="option"><input type="radio" name="q3" value="Desarrollo de inmuebles para venta"> Desarrollo de inmuebles para venta</label>
+        </div>
+        <input type="text" name="q3_other" placeholder="Otro tipo de trabajo (opcional)">
+      </section>
+
+      <section class="card construction" data-q="4">
+        <div class="qnum">Pregunta 04 · Construcción</div>
+        <h3 class="question">¿Cómo cobras normalmente los trabajos?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q4" value="Obra completa"> Por obra completa</label>
+          <label class="option"><input type="radio" name="q4" value="Avances de obra"> Por avances de obra</label>
+          <label class="option"><input type="radio" name="q4" value="Mano de obra"> Mano de obra</label>
+          <label class="option"><input type="radio" name="q4" value="Honorarios / supervisión"> Honorarios / supervisión</label>
+          <label class="option"><input type="radio" name="q4" value="Comisión o porcentaje"> Comisión o porcentaje</label>
+          <label class="option"><input type="radio" name="q4" value="Depende del proyecto"> Depende del proyecto</label>
+        </div>
+      </section>
+
+      <section class="card construction" data-q="5">
+        <div class="qnum">Pregunta 05 · Construcción</div>
+        <h3 class="question">¿Quiénes son normalmente tus clientes?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q5" value="Personas físicas"> Personas particulares</label>
+          <label class="option"><input type="radio" name="q5" value="Empresas"> Empresas</label>
+          <label class="option"><input type="radio" name="q5" value="Constructoras"> Constructoras</label>
+          <label class="option"><input type="radio" name="q5" value="Gobierno"> Gobierno</label>
+          <label class="option"><input type="radio" name="q5" value="Combinación"> Combinación de varios</label>
+        </div>
+      </section>
+
+      <section class="card" data-q="6">
+        <div class="qnum">Pregunta 06 · Trading</div>
+        <h3 class="question">¿Cómo realizas trading actualmente?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q6" value="Solo capital propio"> Solo con capital propio</label>
+          <label class="option"><input type="radio" name="q6" value="Solo cuentas fondeadas"> Solo con cuentas fondeadas</label>
+          <label class="option"><input type="radio" name="q6" value="Ambos"> Con ambos</label>
+          <label class="option"><input type="radio" name="q6" value="Aún no retiro ganancias"> Aún no retiro ganancias</label>
+        </div>
+      </section>
+
+      <section class="card" data-q="7">
+        <div class="qnum">Pregunta 07 · Trading</div>
+        <h3 class="question">¿Qué activos operas?</h3>
+        <p class="sub">Puedes seleccionar varios.</p>
+        <div class="options">
+          <label class="option"><input type="checkbox" name="q7" value="Forex"> Forex</label>
+          <label class="option"><input type="checkbox" name="q7" value="Índices"> Índices</label>
+          <label class="option"><input type="checkbox" name="q7" value="Oro / metales"> Oro / metales</label>
+          <label class="option"><input type="checkbox" name="q7" value="Acciones"> Acciones</label>
+          <label class="option"><input type="checkbox" name="q7" value="ETF"> ETF</label>
+          <label class="option"><input type="checkbox" name="q7" value="Futuros"> Futuros</label>
+          <label class="option"><input type="checkbox" name="q7" value="CFDs"> CFDs</label>
+          <label class="option"><input type="checkbox" name="q7" value="Criptomonedas"> Criptomonedas</label>
+        </div>
+        <input type="text" name="q7_other" placeholder="Otro activo (opcional)">
+      </section>
+
+      <section class="card" data-q="8">
+        <div class="qnum">Pregunta 08 · Plataformas</div>
+        <h3 class="question">¿Qué brokers, plataformas o empresas de fondeo utilizas?</h3>
+        <input type="text" name="q8" placeholder="Ej. FTMO, Topstep, MetaTrader, Binance, Interactive Brokers…">
+      </section>
+
+      <section class="card" data-q="9">
+        <div class="qnum">Pregunta 09 · Cobros</div>
+        <h3 class="question">Cuando recibes dinero de trading o cuentas fondeadas, ¿cómo lo recibes normalmente?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q9" value="Transferencia bancaria"> Transferencia bancaria</label>
+          <label class="option"><input type="radio" name="q9" value="Wise / Deel / PayPal u otra plataforma"> Wise / Deel / PayPal u otra plataforma</label>
+          <label class="option"><input type="radio" name="q9" value="Criptomonedas"> Criptomonedas</label>
+          <label class="option"><input type="radio" name="q9" value="Varias formas"> Varias formas</label>
+        </div>
+      </section>
+
+      <section class="card" data-q="10">
+        <div class="qnum">Pregunta 10 · Otros ingresos</div>
+        <h3 class="question">¿Tienes alguna otra fuente de ingresos además de construcción y trading?</h3>
+        <div class="options">
+          <label class="option"><input type="radio" name="q10" value="No"> No</label>
+          <label class="option"><input type="radio" name="q10" value="Sueldo"> Sueldo</label>
+          <label class="option"><input type="radio" name="q10" value="Rentas"> Rentas</label>
+          <label class="option"><input type="radio" name="q10" value="Inversiones"> Inversiones</label>
+          <label class="option"><input type="radio" name="q10" value="Venta de bienes"> Venta de bienes</label>
+          <label class="option"><input type="radio" name="q10" value="Otra"> Otra</label>
+        </div>
+        <input type="text" name="q10_other" placeholder="Especifica si aplica (opcional)">
+      </section>
+
+      <div class="error" id="errorMsg">Faltan respuestas. Revisa las preguntas visibles antes de generar el resumen.</div>
+
+      <div class="actions">
+        <button type="button" class="secondary" id="resetBtn">Limpiar respuestas</button>
+        <button type="submit" class="primary" id="submitBtn">Enviar diagnóstico</button>
+      </div>
+    </form>
+
+    <section class="result" id="resultBox">
+      <h2 id="resultTitle">Información recibida</h2>
+      <div class="note" id="resultNote">
+        Tu diagnóstico fue enviado correctamente para revisión contable y fiscal.
+      </div>
+      <div class="summary" id="summaryText"></div>
+    </section>
+
+    <div class="footer">
+      La información proporcionada se utiliza únicamente para identificar la naturaleza de tus actividades e ingresos
+      y preparar una propuesta de actualización fiscal. Las respuestas no modifican por sí mismas tu situación ante el SAT.
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('taxForm');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressPct = document.getElementById('progressPct');
+    const resultBox = document.getElementById('resultBox');
+    const summaryText = document.getElementById('summaryText');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function getRadio(name){
+      const el = form.querySelector(`input[name="${name}"]:checked`);
+      return el ? el.value : '';
+    }
+
+    function getChecks(name){
+      return [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(x => x.value);
+    }
+
+    function updateConditional(){
+      const q1 = getRadio('q1');
+      const showConstruction = q1 === 'Construcción' || q1 === 'Ambas' || q1 === '';
+      document.querySelectorAll('.construction').forEach(card=>{
+        card.classList.toggle('hidden', !showConstruction);
+      });
+      updateProgress();
+    }
+
+    function questionAnswered(n){
+      if(n === 7) return getChecks('q7').length > 0 || form.elements['q7_other'].value.trim() !== '';
+      if(n === 8) return form.elements['q8'].value.trim() !== '';
+      const el = form.querySelector(`input[name="q${n}"]:checked`);
+      return !!el;
+    }
+
+    function visibleQuestions(){
+      return [...document.querySelectorAll('[data-q]')].filter(x => !x.classList.contains('hidden'));
+    }
+
+    function updateProgress(){
+      const visible = visibleQuestions();
+      const answered = visible.filter(card => questionAnswered(Number(card.dataset.q))).length;
+      const pct = visible.length ? Math.round((answered / visible.length) * 100) : 0;
+      progressBar.style.width = pct + '%';
+      progressText.textContent = `${answered} de ${visible.length} respondidas`;
+      progressPct.textContent = pct + '%';
+    }
+
+    form.addEventListener('change', e=>{
+      if(e.target.name === 'q1') updateConditional();
+      updateProgress();
+    });
+    form.addEventListener('input', updateProgress);
+
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxB1ffBPT6M5-YuPb5FTQhnWC4DzSp2gZYUAt3ZkBYHP8I9E29PaCz-Intulptz5s7d/exec";
+    const submitBtn = document.getElementById('submitBtn');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultNote = document.getElementById('resultNote');
+
+    form.addEventListener('submit', async e=>{
+      e.preventDefault();
+
+      const clientName = form.elements['client_name'].value.trim();
+      const visible = visibleQuestions();
+      const missing = visible.filter(card => !questionAnswered(Number(card.dataset.q)));
+
+      if(!clientName || missing.length){
+        errorMsg.style.display = 'block';
+        errorMsg.textContent = !clientName
+          ? 'Escribe el nombre completo antes de enviar.'
+          : 'Faltan respuestas. Revisa las preguntas visibles antes de enviar.';
+        if(!clientName) form.elements['client_name'].focus();
+        else missing[0].scrollIntoView({behavior:'smooth', block:'center'});
+        return;
+      }
+
+      errorMsg.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+
+      const constructionVisible = !document.querySelector('[data-q="3"]').classList.contains('hidden');
+
+      let q3 = constructionVisible ? getRadio('q3') : 'No aplica';
+      const q3o = form.elements['q3_other'].value.trim();
+      if(q3o) q3 += ` / Otro: ${q3o}`;
+
+      let assets = getChecks('q7');
+      const q7o = form.elements['q7_other'].value.trim();
+      if(q7o) assets.push(q7o);
+
+      let q10 = getRadio('q10');
+      const q10o = form.elements['q10_other'].value.trim();
+      if(q10o) q10 += ` / ${q10o}`;
+
+      const payload = {
+        client_name: clientName,
+        q1: getRadio('q1'),
+        q2: getRadio('q2'),
+        q3: q3,
+        q4: constructionVisible ? getRadio('q4') : 'No aplica',
+        q5: constructionVisible ? getRadio('q5') : 'No aplica',
+        q6: getRadio('q6'),
+        q7: assets,
+        q8: form.elements['q8'].value.trim(),
+        q9: getRadio('q9'),
+        q10: q10
+      };
+
+      try {
+        await fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const lines = [];
+        lines.push(`Cliente: ${clientName}`);
+        lines.push(`Actividad actual: ${payload.q1}`);
+        lines.push(`Trading: ${payload.q6}`);
+        lines.push(`Activos: ${assets.join(', ')}`);
+        lines.push('');
+        lines.push('Ya recibimos tu información. El siguiente paso es revisar la combinación de actividades y preparar la actualización fiscal correspondiente.');
+
+        resultTitle.textContent = 'Diagnóstico enviado';
+        resultNote.textContent = 'La información fue enviada correctamente para revisión.';
+        summaryText.textContent = lines.join('\n');
+        resultBox.style.display = 'block';
+        resultBox.scrollIntoView({behavior:'smooth', block:'start'});
+        submitBtn.textContent = 'Enviado ✓';
+      } catch(err) {
+        errorMsg.style.display = 'block';
+        errorMsg.textContent = 'No se pudo enviar la información. Intenta nuevamente.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar diagnóstico';
+      }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      form.reset();
+      resultBox.style.display = 'none';
+      errorMsg.style.display = 'none';
+      updateConditional();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+
+    updateConditional();
+  </script>
+</body>
+</html>
